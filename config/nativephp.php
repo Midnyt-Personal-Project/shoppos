@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'version' => env('NATIVEPHP_APP_VERSION', '1.0.0'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.0.2'),
 
     /*
     |--------------------------------------------------------------------------
@@ -347,6 +347,26 @@ return [
     'postbuild' => [
         'npm run release', // Run a command after the build
     ],
+
+
+
+'updater' => [
+    'enabled' => env('NATIVEPHP_UPDATER_ENABLED', true),
+    'default' => env('NATIVEPHP_UPDATER_PROVIDER', 'github'),
+    'providers' => [
+        'github' => [
+            'driver' => 'github',
+            'repo' => env('GITHUB_REPO'),
+            'owner' => env('GITHUB_OWNER'),
+            'token' => env('GITHUB_TOKEN'),
+            'vPrefixedTagName' => true,  // <-- ADD THIS LINE
+            'private' => false,
+            'channel' => 'latest',
+            'releaseType' => 'release',
+        ],
+        // ... other providers
+    ],
+],
     'queue_workers' => [
     'one' => [],
     'two' => [],
