@@ -2,16 +2,21 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
-use Native\Desktop\Facades\{GlobalShortcut, Menu, MenuBar, Notification, Window};
 use App\Events\{SaleCompleted, StockLow};
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
+use Log;
+use Native\Desktop\Contracts\ProvidesPhpIni;
+use Native\Desktop\Events\AutoUpdater\{UpdateAvailable, UpdateDownloaded};
+use Native\Desktop\Facades\{Menu, MenuBar, Notification, Window};
+use Native\Laravel\Facades\AutoUpdater;
 
-class NativeAppServiceProvider extends ServiceProvider
+
+class NativeAppServiceProvider implements ProvidesPhpIni
 {
     /**
-     * Boot method — everything NativePHP needs is configured here.
-     * This runs once when the desktop app starts.
+     * Executed once the native application has been booted.
+     * Use this method to open windows, register global shortcuts, etc.
      */
     public function boot(): void
     {
@@ -20,10 +25,26 @@ class NativeAppServiceProvider extends ServiceProvider
             ->title('OmniPOS — Point of Sale')
             ->width(1280)
             ->height(800)
+            ->hideMenu()
             ->minWidth(960)
             ->minHeight(600)
-            ->rememberState()        // remember size/position between launches
-            ->titleBarHidden(false);
+             ->rememberState()        // remember size/position between launches
+            ->minimizable(true)
+            ->closable(true);
+
+        Event::listen(UpdateAvailable::class, function ($event) {
+            Notification::create()
+                ->title('Update Available')
+                ->body("Version {$event->version} is available. Restart to install.")
+                ->show();
+        });
+
+        Event::listen(UpdateDownloaded::class, function () {
+            Notification::create()
+                ->title('Update Downloaded')
+                ->body('The update has finished downloading. Restart to install it.')
+                ->show();
+        });
 
         // ── 2. Application Menu (top menu bar on macOS / Windows) ─────────────
         if (auth()->check()) {
@@ -114,16 +135,19 @@ class NativeAppServiceProvider extends ServiceProvider
 
                     Menu::separator(),
 
-                    Menu::link('https://license-s.oyalo.net/', 'Documentation')
+                    Menu::link('https://omnipos.app/docs', 'Documentation')
                         ->openInBrowser(),
 
-                    Menu::link('https://license-s.oyalo.net/', 'Get Support')
+                    Menu::link('https://omnipos.app/support', 'Get Support')
                         ->openInBrowser(),
 
                     Menu::separator(),
 
-                    // Menu::label('Report a Bug')
-                    //     ->event(\App\Events\Native\ReportBugClicked::class),
+                    // Alternative method using the Browser facade:
+                    // Menu::link('#', 'Documentation')
+                    //     ->event(function() {
+                    //         Browser::open('https://omnipos.app/docs');
+                    //     }),
 
                     Menu::separator(),
 
@@ -135,7 +159,7 @@ class NativeAppServiceProvider extends ServiceProvider
                 // ── Window menu (standard minimise/zoom/close) ─────────────────
                 Menu::window(),
             );
-        }
+        } // <-- THIS WAS THE MISSING CLOSING BRACE
 
         // ── 3. System Tray / Menu Bar icon ────────────────────────────────────
         // This puts a small icon in the system tray (Windows) / menu bar (macOS)
@@ -187,6 +211,8 @@ class NativeAppServiceProvider extends ServiceProvider
 
         // ── 5. Native Notifications for Events ──────────────────────────────
         Event::listen(SaleCompleted::class, function (SaleCompleted $event) {
+            if (!auth()->check()) return;
+
             $sale = $event->sale->load(['branch.shop']);
             $currency = $sale->branch->shop->currency_symbol;
 
@@ -197,6 +223,8 @@ class NativeAppServiceProvider extends ServiceProvider
         });
 
         Event::listen(StockLow::class, function (StockLow $event) {
+            if (!auth()->check()) return;
+
             $branch = $event->branch;
             $itemsCount = count($event->items);
 
@@ -205,5 +233,14 @@ class NativeAppServiceProvider extends ServiceProvider
                 ->body("{$itemsCount} item(s) are low in stock at {$branch->name}")
                 ->show();
         });
+    }
+
+    /**
+     * Return an array of php.ini directives to be set.
+     */
+    public function phpIni(): array
+    {
+        return [
+        ];
     }
 }

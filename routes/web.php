@@ -1,9 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\{Route, Schedule};
 use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PosController, ProductController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, UserController};
+use Illuminate\Support\Facades\{Route, Schedule};
+use Native\Desktop\Facades\AutoUpdater;
 
-
+Route::get('/check-for-updates', function () {
+    try {
+        AutoUpdater::checkForUpdates();
+        return 'Update check initiated successfully. Check logs for details.';
+    } catch (Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
  Route::get('/setup/check', [SetupController::class, 'check'])->name('setup.check');
