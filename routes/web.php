@@ -1,17 +1,18 @@
 <?php
 
-use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PosController, ProductController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, UserController};
 use Illuminate\Support\Facades\{Route, Schedule};
+use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PosController, ProductController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, UpdateHistoryController, UserController};
 use Native\Desktop\Facades\AutoUpdater;
 
-Route::get('/check-for-updates', function () {
-    try {
-        AutoUpdater::checkForUpdates();
-        return 'Update check initiated successfully. Check logs for details.';
-    } catch (Exception $e) {
-        return 'Error: ' . $e->getMessage();
-    }
-});
+
+
+// ───  Documentations (runs before auth) ─────────────────────────────────────────────
+Route::get('/documentation', function () {
+    return view('about.index');
+})->name('documentation');
+
+
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
  Route::get('/setup/check', [SetupController::class, 'check'])->name('setup.check');
@@ -34,6 +35,10 @@ Route::middleware('auth')->group(function () {
 // ─── Authenticated ─────────────────────────────────────────────────────────────
 
 Route::middleware(['auth', 'role', 'license'])->group(function () {
+
+
+    Route::get('/updates', [UpdateHistoryController::class, 'index'])->name('updates.index');
+    Route::post('/updates/check', [UpdateHistoryController::class, 'check'])->name('updates.check');
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
