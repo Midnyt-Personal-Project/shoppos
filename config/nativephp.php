@@ -362,7 +362,7 @@ return [
             'vPrefixedTagName' => true,  // <-- ADD THIS LINE
             'private' => false,
             'channel' => 'latest',
-            'releaseType' => `release`, // or 'prerelease' to include pre-releases
+            'releaseType' => 'draft', // or 'prerelease' to include pre-releases
         ],
         // ... other providers
     ],
