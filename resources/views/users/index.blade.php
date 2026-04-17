@@ -3,7 +3,31 @@
 @section('page-title','Staff Management')
 
 @section('content')
-<div class="space-y-5" x-data="{ showAdd: false, editing: null }">
+<div class="space-y-5" x-data="{ 
+    showAdd: false, 
+    showEdit: false,
+    editing: null,
+    editForm: {
+        name: '',
+        role: '',
+        branch_id: '',
+        is_active: 1,
+        password: ''
+    },
+    openEdit(user) {
+        this.editing = user;
+        this.editForm.name = user.name;
+        this.editForm.role = user.role;
+        this.editForm.branch_id = user.branch_id;
+        this.editForm.is_active = user.is_active ? 1 : 0;
+        this.editForm.password = '';
+        this.showEdit = true;
+    },
+    updateUrl() {
+        if (!this.editing) return '#';
+        return window.userUpdateRoute.replace('__USER_ID__', this.editing.id);
+    }
+}">
 
     <div class="flex items-center justify-between">
         <p class="text-slate-400 text-sm">{{ $users->count() }} staff members</p>
@@ -20,7 +44,7 @@
                     <th class="text-center px-3 py-3">Role</th>
                     <th class="text-center px-3 py-3">Status</th>
                     <th class="text-right px-5 py-3">Actions</th>
-                </tr>
+                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
                 @foreach($users as $user)
@@ -32,29 +56,38 @@
                             </div>
                             <span class="text-white">{{ $user->name }}</span>
                         </div>
-                    </td>
+                     </td>
                     <td class="px-3 py-3 text-slate-400 text-xs">{{ $user->email }}</td>
                     <td class="px-3 py-3 text-slate-400">{{ $user->branch?->name ?? '—' }}</td>
                     <td class="px-3 py-3 text-center">
                         @php $rc = ['owner'=>'bg-purple-500/10 text-purple-400','admin'=>'bg-blue-500/10 text-blue-400','manager'=>'bg-cyan-500/10 text-cyan-400','cashier'=>'bg-slate-700 text-slate-300']; @endphp
                         <span class="badge {{ $rc[$user->role] ?? '' }}">{{ ucfirst($user->role) }}</span>
-                    </td>
+                     </td>
                     <td class="px-3 py-3 text-center">
                         <span class="badge {{ $user->is_active ? 'bg-green-500/10 text-green-400' : 'bg-slate-700 text-slate-500' }}">
                             {{ $user->is_active ? 'Active' : 'Inactive' }}
                         </span>
-                    </td>
-                    <td class="px-5 py-3 text-right">
+                     </td>
+                    <td class="px-5 py-3 text-right space-x-2">
                         @if($user->id !== auth()->id())
-                        <form method="POST" action="{{ route('users.destroy', $user) }}"
-                              class="inline" onsubmit="return confirm('Deactivate this user?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="text-slate-600 hover:text-red-400 transition-colors text-xs">Deactivate</button>
-                        </form>
+                            <button @click="openEdit({
+                                id: {{ $user->id }},
+                                name: '{{ addslashes($user->name) }}',
+                                role: '{{ $user->role }}',
+                                branch_id: {{ $user->branch_id }},
+                                is_active: {{ $user->is_active ? 1 : 0 }}
+                            })" class="text-slate-400 hover:text-white transition-colors text-xs">
+                                Edit
+                            </button>
+                            <form method="POST" action="{{ route('users.destroy', $user) }}"
+                                  class="inline" onsubmit="return confirm('Deactivate this user?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-slate-600 hover:text-red-400 transition-colors text-xs">Deactivate</button>
+                            </form>
                         @else
-                        <span class="text-slate-700 text-xs">You</span>
+                            <span class="text-slate-700 text-xs">You</span>
                         @endif
-                    </td>
+                     </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -94,5 +127,53 @@
             </form>
         </div>
     </div>
+
+    {{-- Edit Staff Modal --}}
+    <div x-show="showEdit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div class="card w-96 p-6" @click.outside="showEdit = false">
+            <h3 class="text-white font-semibold mb-4">Edit Staff Member</h3>
+            <form :action="updateUrl()" method="POST">
+                @csrf
+                @method('PUT')
+                <div><label class="text-slate-400 text-xs mb-1 block">Full Name *</label><input type="text" name="name" x-model="editForm.name" required class="input"></div>
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Role *</label>
+                    <select name="role" x-model="editForm.role" required class="input">
+                        <option value="cashier">Cashier</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Branch *</label>
+                    <select name="branch_id" x-model="editForm.branch_id" required class="input">
+                        @foreach(\App\Models\Branch::where('shop_id', auth()->user()->shop_id)->get() as $branch)
+                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Status</label>
+                    <select name="is_active" x-model="editForm.is_active" class="input">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Password (leave blank to keep current)</label>
+                    <input type="password" name="password" x-model="editForm.password" minlength="6" class="input">
+                </div>
+                <div class="flex gap-3 mt-2">
+                    <button type="button" @click="showEdit = false" class="btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn-primary flex-1">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    // Placeholder that will be replaced with the actual user ID in JavaScript.
+    window.userUpdateRoute = @json(route('users.update', ['user' => '__USER_ID__']));
+</script>
 @endsection

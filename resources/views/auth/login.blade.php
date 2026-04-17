@@ -24,7 +24,7 @@
 </head>
 <body class="h-full flex items-center justify-center grid-bg"
       style="background-color:#0f172a"
-      x-data="setupApp()">
+      x-data="{ loginLoading: false }">
 
     {{-- ── Login Card ──────────────────────────────────────────────────────── --}}
     <div class="w-full max-w-sm px-6">
@@ -43,7 +43,7 @@
         </div>
 
         {{-- Login form --}}
-        <form method="POST" action="{{ route('login') }}" class="space-y-4">
+        <form method="POST" action="{{ route('login') }}" class="space-y-4" @submit="loginLoading = true">
             @csrf
 
             @if($errors->any())
@@ -76,11 +76,17 @@
             </div>
 
             <button type="submit"
-                    class="w-full text-white font-semibold py-3 rounded-xl text-sm transition-all"
+                    :disabled="loginLoading"
+                    class="w-full text-white font-semibold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
                     style="background:#16a34a;box-shadow:0 4px 16px rgba(22,163,74,.25)"
-                    onmouseover="this.style.background='#22c55e'"
+                    :class="{ 'opacity-70 cursor-not-allowed': loginLoading }"
+                    onmouseover="if(!this.disabled) this.style.background='#22c55e'"
                     onmouseout="this.style.background='#16a34a'">
-                Sign In
+                <svg x-show="loginLoading" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-text="loginLoading ? 'Signing in...' : 'Sign In'"></span>
             </button>
         </form>
 
@@ -107,7 +113,7 @@
 
     </div>
 
-    {{-- ── Setup Modal ─────────────────────────────────────────────────────── --}}
+    {{-- ── Setup Modal (unchanged) ─────────────────────────────────────────── --}}
     <div x-show="showSetup" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background:rgba(0,0,0,.7);backdrop-filter:blur(4px)">
@@ -292,7 +298,6 @@
                             Password <span class="text-red-400">*</span>
                         </label>
                         <div class="relative">
-                            :type="showPass ? 'text' : 'password'"
                             <input :type="showPass ? 'text' : 'password'"
                                    x-model="form.password" required minlength="8"
                                    class="input py-2.5 pr-10" placeholder="Minimum 8 characters">
@@ -427,13 +432,11 @@ function setupApp() {
         },
 
         async init() {
-            // Check if setup is needed by calling the API
             try {
                 const res  = await fetch('/setup/check');
                 const data = await res.json();
                 this.needsSetup = data.needs_setup;
             } catch (e) {
-                // If the endpoint fails, assume not needed
                 this.needsSetup = false;
             }
         },
@@ -459,7 +462,6 @@ function setupApp() {
             this.errors   = {};
             this.errorMsg = '';
 
-            // Client-side validation
             if (!this.form.name.trim())  { this.errors.name  = 'Full name is required.';  return; }
             if (!this.form.email.trim()) { this.errors.email = 'Email is required.';       return; }
             if (this.form.password.length < 8) {
@@ -486,15 +488,12 @@ function setupApp() {
                 const data = await res.json();
 
                 if (data.success) {
-                    // Redirect to dashboard
                     window.location.href = data.redirect;
                 } else if (res.status === 422) {
-                    // Laravel validation errors
                     const errs = data.errors || {};
                     this.errors   = {};
                     this.errorMsg = '';
 
-                    // Map Laravel field names to form fields
                     if (errs.shop_name)       { this.errors.shop_name = errs.shop_name[0]; this.tab = 'shop'; }
                     if (errs.currency)        { this.errors.currency  = errs.currency[0];  this.tab = 'shop'; }
                     if (errs.name)            { this.errors.name      = errs.name[0]; }

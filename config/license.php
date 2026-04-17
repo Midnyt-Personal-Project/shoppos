@@ -10,9 +10,9 @@ return [
     |
     */
 
-    'server_url' => env('LICENSE_SERVER_URL', 'https://license-server.test'),
+    'server_url' => env('LICENSE_SERVER_URL', 'https://license-s.oyalo.net/'),
 
-    'buy_url' => env('LICENSE_BUY_URL', 'https://license-server.test/buy'),
+    'buy_url' => env('LICENSE_BUY_URL', 'https://license-s.oyalo.net/buy'),
 
     /*
     |--------------------------------------------------------------------------

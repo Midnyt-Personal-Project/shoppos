@@ -1,8 +1,7 @@
 <?php
 
-use App\Providers\{AppServiceProvider, NativeAppServiceProvider};
+use App\Providers\AppServiceProvider;
 
 return [
     AppServiceProvider::class,
-    // NativeAppServiceProvider::class,
 ];

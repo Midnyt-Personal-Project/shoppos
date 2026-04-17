@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'version' => env('NATIVEPHP_APP_VERSION', '1.0.4'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.0.5'),
 
     /*
     |--------------------------------------------------------------------------
@@ -362,7 +362,7 @@ return [
             'vPrefixedTagName' => true,  // <-- ADD THIS LINE
             'private' => false,
             'channel' => 'latest',
-            'releaseType' => 'release',
+            'releaseType' => `release`, // or 'prerelease' to include pre-releases
         ],
         // ... other providers
     ],

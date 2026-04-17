@@ -3,14 +3,63 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Events\ManualUpdateCheck;
 use Native\Desktop\Contracts\ProvidesPhpIni;
-use Native\Desktop\Facades\{Menu, Window};
+use Native\Desktop\Events\AutoUpdater\{CheckingForUpdate, Error, UpdateAvailable, UpdateDownloaded, UpdateNotAvailable};
+use Native\Desktop\Facades\{AutoUpdater, Menu, Window};
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
     public function boot(): void
     {
-        $menus = [];
+       
+    AutoUpdater::checkForUpdates();
+    AutoUpdater::quitAndInstall();
+    // ─── Register AutoUpdater Event Listeners FIRST ─────────────
+        // \Illuminate\Support\Facades\Event::listen(
+        //     CheckingForUpdate::class,
+        //     function () {
+        //         \Illuminate\Support\Facades\Log::info('Checking for updates...');
+        //     }
+        // );
+
+        // \Illuminate\Support\Facades\Event::listen(
+        //     UpdateAvailable::class,
+        //     function ($event) {
+        //         \Illuminate\Support\Facades\Log::info('Update available: ' . $event->version);
+        //     }
+        // );
+
+        // \Illuminate\Support\Facades\Event::listen(
+        //     UpdateNotAvailable::class,
+        //     function () {
+        //         \Illuminate\Support\Facades\Log::info('No update available');
+        //     }
+        // );
+
+        // \Illuminate\Support\Facades\Event::listen(
+        //     UpdateDownloaded::class,
+        //     function ($event) {
+        //         \Illuminate\Support\Facades\Log::info('Update downloaded: ' . $event->version);
+        //     }
+        // );
+
+        // \Illuminate\Support\Facades\Event::listen(
+        //     Error::class,
+        //     function ($event) {
+        //         \Illuminate\Support\Facades\Log::error('Update error: ' . $event->error);
+        //     }
+        // );
+
+        // // ─── Register Manual Update Check Event ────────────────────
+        // \Illuminate\Support\Facades\Event::listen(
+        //     ManualUpdateCheck::class,
+        //     function () {
+        //         \Illuminate\Support\Facades\Log::info('Manual update check triggered');
+        //         AutoUpdater::checkForUpdates();
+        //     }
+        // );
+    $menus = [];
 
         // ─── File Menu ─────────────────────────────────────────────
         $menus[] = Menu::make(
@@ -69,10 +118,14 @@ class NativeAppServiceProvider implements ProvidesPhpIni
 
             Menu::separator(),
 
-            // Optional: direct update check
-            Menu::route('updates.index', 'Check for Updates')
-                ->hotkey('CmdOrCtrl+U'),
+       
+
+
         )->label('System');
+
+  
+
+    
 
         Menu::create(...$menus);
 

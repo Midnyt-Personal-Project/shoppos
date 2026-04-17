@@ -18,8 +18,9 @@ class LicenseController extends Controller
         $status  = $this->license->status();
         $details = $this->license->details();
         $buyUrl  = config('license.buy_url', '#');
+        $shopName = auth()->user()->shop_name ?? '';
 
-        return view('license.index', compact('status', 'details', 'buyUrl'));
+        return view('license.index', compact('status', 'details', 'buyUrl', 'shopName'));
     }
 
     /**
@@ -31,6 +32,7 @@ class LicenseController extends Controller
         
         $request->validate([
             'license_key' => 'required|string|min:10',
+            'shop_name' => 'nullable|string|max:255',
         ]);
 
         Log::info('LicenseController::activate called', [

@@ -142,6 +142,8 @@
         <form method="POST" action="{{ route('license.activate') }}">
             @csrf
 
+            <input type="hidden" name="shop_name" value="{{ $shopName }}">
+
             <div class="relative">
                 <input type="text"
                        name="license_key"
@@ -179,7 +181,7 @@
             <p>1. Visit <a href="{{ $buyUrl }}" target="_blank" class="text-blue-400 hover:underline">{{ config('license.buy_url') }}</a> and choose a plan.</p>
             <p>2. Pay via Paystack (card or mobile money). Your key will be emailed to you instantly.</p>
             <p>3. Or contact the developer directly to purchase and receive a key manually.</p>
-            <p>4. Enter the key in the box above — it looks like: <span class="font-mono text-slate-400">OMNI-AB12-CD34-EF56-GH78</span></p>
+            <p>4. Enter the key in the box above — it looks like: <span class="font-mono text-slate-400">OMNI-XXXX-XXXX-XXXX-XXXX</span></p>
         </div>
     </div>
 
