@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\{Route, Schedule};
-use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PosController, ProductController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, UpdateHistoryController, UserController};
+use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
 use Native\Desktop\Facades\AutoUpdater;
 
 
@@ -15,8 +15,8 @@ Route::get('/documentation', function () {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
- Route::get('/setup/check', [SetupController::class, 'check'])->name('setup.check');
- Route::post('/setup',      [SetupController::class, 'store'])->name('setup.store');
+Route::get('/setup/check', [SetupController::class, 'check'])->name('setup.check');
+Route::post('/setup',      [SetupController::class, 'store'])->name('setup.store');
 
 
 Route::middleware('guest')->group(function () {
@@ -33,8 +33,13 @@ Route::middleware('auth')->group(function () {
 });
 
 // ─── Authenticated ─────────────────────────────────────────────────────────────
+// Route::middleware(['auth', 'role', 'license'])->group(function () {
+Route::middleware(['auth', 'role'])->group(function () {
 
-Route::middleware(['auth', 'role', 'license'])->group(function () {
+    Route::get('/settings/peers', [App\Http\Controllers\PeerController::class, 'index'])->name('settings.peers.index');
+    Route::post('/settings/peers', [App\Http\Controllers\PeerController::class, 'store'])->name('settings.peers.store');
+    Route::put('/settings/peers/{peer}', [App\Http\Controllers\PeerController::class, 'update'])->name('settings.peers.update');
+    Route::delete('/settings/peers/{peer}', [App\Http\Controllers\PeerController::class, 'destroy'])->name('settings.peers.destroy');
 
 
     Route::get('/updates', [UpdateHistoryController::class, 'index'])->name('updates.index');
@@ -49,7 +54,7 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
         Route::post('/checkout',      [PosController::class, 'checkout'])->name('checkout');
         Route::get('/receipt/{sale}', [PosController::class, 'receipt'])->name('receipt');
         Route::post('/refund/{sale}', [PosController::class, 'refund'])->name('refund')
-             ->middleware('role:owner,admin,manager');
+            ->middleware('role:owner,admin,manager');
     });
 
     // ── Products ──────────────────────────────────────────────────────────────
@@ -58,6 +63,8 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
         Route::post('products/{product}/restock',       [ProductController::class, 'restock'])->name('products.restock');
         Route::post('products/{product}/transfer',      [ProductController::class, 'transfer'])->name('products.transfer');
         Route::post('products/{product}/remove-branch', [ProductController::class, 'removeBranch'])->name('products.removeBranch');
+        Route::get('products/import', [App\Http\Controllers\ProductImportController::class, 'showForm'])->name('products.import.form');
+        Route::post('products/import', [ProductImportController::class, 'import'])->name('products.import.store');
     });
 
     // ── Sales ─────────────────────────────────────────────────────────────────
@@ -65,34 +72,34 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
         Route::get('/',               [SaleController::class, 'index'])->name('index');
         Route::get('/{sale}',         [SaleController::class, 'show'])->name('show');
         Route::get('/{sale}/refund',  [SaleController::class, 'refundView'])->name('refund')
-             ->middleware('role:owner,admin,manager');
+            ->middleware('role:owner,admin,manager');
     });
 
     // ── Purchase Orders ───────────────────────────────────────────────────────
     Route::prefix('purchase-orders')->name('purchase-orders.')->group(function () {
- 
-    // All authenticated users can view POs for their branch
-    Route::get('/',                          [PurchaseOrderController::class, 'index'])->name('index');
-    Route::get('/create',                    [PurchaseOrderController::class, 'create'])->name('create');
-    Route::post('/',                         [PurchaseOrderController::class, 'store'])->name('store');
-    Route::get('/{purchaseOrder}',           [PurchaseOrderController::class, 'show'])->name('show');
-    Route::get('/{purchaseOrder}/print',     [PurchaseOrderController::class, 'print'])->name('print');
- 
-    // Receive items (managers and above)
-    Route::middleware('role:owner,admin,manager')->group(function () {
-        Route::post('/items/{item}/receive',       [PurchaseOrderController::class, 'receiveItem'])->name('receiveItem');
-        Route::post('/{purchaseOrder}/receive-all',[PurchaseOrderController::class, 'receiveAll'])->name('receiveAll');
-        Route::delete('/{purchaseOrder}',          [PurchaseOrderController::class, 'destroy'])->name('destroy');
-    });
+
+        // All authenticated users can view POs for their branch
+        Route::get('/',                          [PurchaseOrderController::class, 'index'])->name('index');
+        Route::get('/create',                    [PurchaseOrderController::class, 'create'])->name('create');
+        Route::post('/',                         [PurchaseOrderController::class, 'store'])->name('store');
+        Route::get('/{purchaseOrder}',           [PurchaseOrderController::class, 'show'])->name('show');
+        Route::get('/{purchaseOrder}/print',     [PurchaseOrderController::class, 'print'])->name('print');
+
+        // Receive items (managers and above)
+        Route::middleware('role:owner,admin,manager')->group(function () {
+            Route::post('/items/{item}/receive',       [PurchaseOrderController::class, 'receiveItem'])->name('receiveItem');
+            Route::post('/{purchaseOrder}/receive-all', [PurchaseOrderController::class, 'receiveAll'])->name('receiveAll');
+            Route::delete('/{purchaseOrder}',          [PurchaseOrderController::class, 'destroy'])->name('destroy');
+        });
 
 
- 
-    // Approve / Reject (admins only)
-    Route::middleware('role:owner,admin')->group(function () {
-        Route::post('/{purchaseOrder}/approve',    [PurchaseOrderController::class, 'approve'])->name('approve');
-        Route::post('/{purchaseOrder}/reject',     [PurchaseOrderController::class, 'reject'])->name('reject');
+
+        // Approve / Reject (admins only)
+        Route::middleware('role:owner,admin')->group(function () {
+            Route::post('/{purchaseOrder}/approve',    [PurchaseOrderController::class, 'approve'])->name('approve');
+            Route::post('/{purchaseOrder}/reject',     [PurchaseOrderController::class, 'reject'])->name('reject');
+        });
     });
-});
 
     // ── Customers ─────────────────────────────────────────────────────────────
     Route::prefix('customers')->name('customers.')->group(function () {
@@ -132,6 +139,10 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
         Route::post('/email/{branch}',       [SettingController::class, 'saveBranchEmail'])->name('saveBranchEmail');
         Route::post('/email/{branch}/test',  [SettingController::class, 'testEmail'])->name('testEmail');
         Route::get('/email/{branch}/clear',  [SettingController::class, 'clearBranchEmail'])->name('clearBranchEmail');
+        Route::get('/taxes',       [TaxRateController::class, 'index'])->name('taxes.index');
+        Route::post('/taxes',       [TaxRateController::class, 'store'])->name('taxes.store');
+        Route::put('/taxes/{tax}', [TaxRateController::class, 'update'])->name('taxes.update');
+        Route::delete('/taxes/{tax}', [TaxRateController::class, 'destroy'])->name('taxes.destroy');
     });
 
 
@@ -149,18 +160,18 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
 | On Laravel Herd (local), run: php artisan schedule:work
 |
 */
- 
-// Daily sales summary — sent every day at 8:00 PM
-Schedule::command('omnipos:daily-summary')
-    ->dailyAt('04:43')
-    ->withoutOverlapping()
-    ->runInBackground();
- 
-// Weekly debt reminder — every Monday at 9:00 AM
-Schedule::command('omnipos:debt-reminder')
-    ->weekly()
-    ->mondays()
-    ->at('04:41')
-    ->withoutOverlapping()
-    ->runInBackground();
+
+    // Daily sales summary — sent every day at 8:00 PM
+    Schedule::command('omnipos:daily-summary')
+        ->dailyAt('04:43')
+        ->withoutOverlapping()
+        ->runInBackground();
+
+    // Weekly debt reminder — every Monday at 9:00 AM
+    Schedule::command('omnipos:debt-reminder')
+        ->weekly()
+        ->mondays()
+        ->at('04:41')
+        ->withoutOverlapping()
+        ->runInBackground();
 });

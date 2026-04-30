@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Expense;
-use App\Models\Sale;
-use App\Models\SaleItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\{Expense, Sale, SaleItem};
 
 class ReportController extends Controller
 {
@@ -16,33 +15,58 @@ class ReportController extends Controller
         $from     = $request->date_from ?? now()->startOfMonth()->toDateString();
         $to       = $request->date_to   ?? now()->toDateString();
 
+        // Base query for KPIs and chart
+        $baseQuery = Sale::where('branch_id', $branchId)
+            ->whereDate('created_at', '>=', $from)
+            ->whereDate('created_at', '<=', $to)
+            ->where('status', 'completed');
+
+        // ----- KPIs -----
+        $revenue = (float) $baseQuery->sum('total');
+
+        $saleIds = $baseQuery->pluck('id');
+        $cogs = 0;
+        if ($saleIds->isNotEmpty()) {
+            $cogs = (float) SaleItem::whereIn('sale_id', $saleIds)
+                ->select(DB::raw('SUM(cost * quantity) as total_cogs'))
+                ->value('total_cogs') ?? 0;
+        }
+
+        $expenses = (float) Expense::where('branch_id', $branchId)
+            ->whereBetween('expense_date', [$from, $to])
+            ->sum('amount');
+
+        $profit = $revenue - $cogs - $expenses;
+
+        // ----- Daily revenue for chart -----
+        $dailyRevenue = $baseQuery->selectRaw('DATE(created_at) as date, SUM(total) as daily_total')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $chartDates  = $dailyRevenue->pluck('date')->map(fn($d) => date('d M', strtotime($d)));
+        $chartValues = $dailyRevenue->pluck('daily_total');
+
+        // ----- Top 10 products (full period) -----
+        $topProducts = collect();
+        if ($saleIds->isNotEmpty()) {
+            $topProducts = SaleItem::selectRaw('product_id, product_name, SUM(quantity) as qty_sold, SUM(total) as revenue, SUM((price - cost) * quantity) as profit')
+                ->whereIn('sale_id', $saleIds)
+                ->groupBy('product_id', 'product_name')
+                ->orderByDesc('qty_sold')
+                ->limit(10)
+                ->get();
+        }
+
+        // ----- Paginated sales list for the table -----
         $sales = Sale::with(['user', 'customer', 'items'])
             ->where('branch_id', $branchId)
             ->whereDate('created_at', '>=', $from)
             ->whereDate('created_at', '<=', $to)
             ->where('status', 'completed')
             ->orderByDesc('created_at')
-            ->get();
-
-        $revenue  = $sales->sum('total');
-        $cogs     = $sales->flatMap->items->sum(fn($i) => $i->cost * $i->quantity);
-        $expenses = Expense::where('branch_id', $branchId)
-                           ->whereBetween('expense_date', [$from, $to])
-                           ->sum('amount');
-        $profit   = $revenue - $cogs - $expenses;
-
-        // Group by day for chart
-        $byDay = $sales->groupBy(fn($s) => $s->created_at->format('Y-m-d'));
-        $chartDates  = $byDay->keys()->map(fn($d) => date('d M', strtotime($d)));
-        $chartValues = $byDay->map->sum('total')->values();
-
-        // Top products in period
-        $topProducts = SaleItem::selectRaw('product_id, product_name, SUM(quantity) as qty_sold, SUM(total) as revenue, SUM((price-cost)*quantity) as profit')
-            ->whereIn('sale_id', $sales->pluck('id'))
-            ->groupBy('product_id', 'product_name')
-            ->orderByDesc('qty_sold')
-            ->limit(10)
-            ->get();
+            ->paginate(25)
+            ->appends($request->query());
 
         return view('reports.sales', compact(
             'sales', 'revenue', 'cogs', 'expenses', 'profit',

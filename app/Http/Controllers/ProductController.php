@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{DB, Storage};
 use App\Models\{ActivityLog, Branch, BranchStock, Product, StockTransfer};
 
 class ProductController extends Controller
@@ -63,12 +63,14 @@ class ProductController extends Controller
             'cost'        => 'required|numeric|min:0',
             'unit'        => 'required|string|max:50',
             'is_active'   => 'boolean',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif', 
             // Branch stock rows: branch_stocks[branch_id] = { qty, low_stock_alert }
             'branch_stocks'                  => 'required|array|min:1',
             'branch_stocks.*.branch_id'      => 'required|exists:branches,id',
             'branch_stocks.*.quantity'       => 'required|numeric|min:0',
             'branch_stocks.*.low_stock_alert'=> 'required|numeric|min:0',
         ]);
+        
 
         DB::beginTransaction();
         try {
@@ -80,10 +82,16 @@ class ProductController extends Controller
                 'category'    => $data['category'] ?? null,
                 'description' => $data['description'] ?? null,
                 'price'       => $data['price'],
+                'image'       => $data['image'] ?? null,
                 'cost'        => $data['cost'],
                 'unit'        => $data['unit'],
                 'is_active'   => $request->boolean('is_active', true),
             ]);
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('products', 'public');
+                $product->image = $path;
+                $product->save();
+            }
 
             foreach ($data['branch_stocks'] as $bs) {
                 // Only allow branches in this shop
@@ -132,6 +140,7 @@ class ProductController extends Controller
             'barcode'     => 'nullable|string|max:100',
             'sku'         => 'nullable|string|max:100',
             'category'    => 'nullable|string|max:100',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif',
             'description' => 'nullable|string',
             'price'       => 'required|numeric|min:0',
             'cost'        => 'required|numeric|min:0',
@@ -152,10 +161,20 @@ class ProductController extends Controller
                 'category'    => $data['category'] ?? null,
                 'description' => $data['description'] ?? null,
                 'price'       => $data['price'],
+                'image'       => $data['image'] ?? null,
                 'cost'        => $data['cost'],
                 'unit'        => $data['unit'],
-                'is_active'   => $request->boolean('is_active', true),
+                'is_active'   => $request->boolean('is_active'),
             ]);
+             if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $path = $request->file('image')->store('products', 'public');
+            $product->image = $path;
+            $product->save();
+        }
 
             foreach ($data['branch_stocks'] as $bs) {
                 $branch = Branch::where('id', $bs['branch_id'])

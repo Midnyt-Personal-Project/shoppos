@@ -2,24 +2,28 @@
 
 namespace App\Models;
 
+
+use App\Syncable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 
 class Sale extends Model
 {
-    protected $fillable = [
+use Syncable;    
+protected $fillable = [
         'reference', 'branch_id', 'user_id', 'customer_id',
-        'subtotal', 'discount', 'tax', 'total',
-        'amount_paid', 'change', 'balance_due',
+        'subtotal', 'discount', 'tax', 'total','tax_rate','tax_total',
+        'amount_paid', 'change', 'balance_due','tax_breakdown',
         'status', 'payment_status', 'notes',
     ];
 
     protected $casts = [
         'subtotal'     => 'float',
         'discount'     => 'float',
-        'tax'          => 'float',
+       'tax_rate'   => 'decimal:2',
+        'tax_breakdown' => 'array',
         'total'        => 'float',
+        'tax_total' => 'decimal:2',
         'amount_paid'  => 'float',
         'change'       => 'float',
         'balance_due'  => 'float',

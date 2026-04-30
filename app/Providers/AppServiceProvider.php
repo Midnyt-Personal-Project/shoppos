@@ -23,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         // ── Event → Listener bindings ─────────────────────────────────────────
-        Event::listen(SaleCompleted::class, SendSaleNotification::class);
-        Event::listen(StockLow::class,      SendLowStockAlert::class);
+        // Event::listen(SaleCompleted::class, SendSaleNotification::class);
+        // Event::listen(StockLow::class,      SendLowStockAlert::class);
     }
 }

@@ -9,7 +9,7 @@ use App\Services\MailService;
 class SendDebtReminderEmail extends Command
 {
     protected $signature   = 'omnipos:debt-reminder';
-    protected $description = 'Send weekly outstanding debt summary to each branch Gmail.';
+    protected $description = 'Send weekly outstanding debt summary to the shop email address.';
 
     public function handle(): void
     {
@@ -18,8 +18,10 @@ class SendDebtReminderEmail extends Command
         $shops = Shop::with('branches')->where('is_active', true)->get();
 
         foreach ($shops as $shop) {
-            // Check toggle
-            if (! ShopSetting::get($shop->id, 'notify_debt_reminder', false)) continue;
+            // Check toggle: is debt reminder enabled for this shop?
+            if (! ShopSetting::get($shop->id, 'notify_debt_reminder', false)) {
+                continue;
+            }
 
             // Get all customers with outstanding debt for this shop
             $debtors = Customer::where('shop_id', $shop->id)
@@ -27,45 +29,61 @@ class SendDebtReminderEmail extends Command
                 ->orderByDesc('outstanding_balance')
                 ->get();
 
-            if ($debtors->isEmpty()) continue;
+            if ($debtors->isEmpty()) {
+                continue;
+            }
 
-            // Send to the main branch (or owner branch)
-            // In a multi-branch shop, we send to all branches that have email configured
+            // Determine recipient – use the shop's main email address
+            $recipientEmail = $shop->email;
+            if (empty($recipientEmail)) {
+                $this->error("Shop {$shop->name} has no email address – cannot send debt reminder.");
+                continue;
+            }
+
+            // We only need one configured branch to use as the *sender*.
+            // Loop over branches until we find one with a valid Gmail config.
+            $branchUsed = null;
             foreach ($shop->branches as $branch) {
                 $mailConfig = ShopSetting::branchMailConfig($shop->id, $branch->id);
-                if (empty($mailConfig['gmail_address']) || ! $mailConfig['enabled']) continue;
-
-                $currency    = $shop->currency_symbol;
-                $totalDebt   = $debtors->sum('outstanding_balance');
-                $debtorCount = $debtors->count();
-                $date        = now()->format('l, d F Y');
-
-                // Build rows HTML
-                $rows = '';
-                foreach ($debtors as $i => $customer) {
-                    $bg    = $i % 2 === 0 ? '#ffffff' : '#f8fafc';
-                    $rows .= "<tr style='background:{$bg}'>
-                        <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>" . htmlspecialchars($customer->name) . "</td>
-                        <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>" . ($customer->phone ?? '—') . "</td>
-                        <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;color:#dc2626;'>{$currency}" . number_format($customer->outstanding_balance, 2) . "</td>
-                    </tr>";
+                if (!empty($mailConfig['gmail_address']) && $mailConfig['enabled']) {
+                    $branchUsed = $branch;
+                    break;
                 }
-
-                $html = $this->buildHtml($shop, $branch, $currency, $totalDebt, $debtorCount, $date, $rows);
-
-                $result = MailService::sendFromBranch(
-                    branch:   $branch,
-                    toEmail:  $mailConfig['gmail_address'],
-                    toName:   $branch->name,
-                    subject:  "💳 Weekly Debt Report — {$debtorCount} customers owe {$currency}" . number_format($totalDebt, 2),
-                    htmlBody: $html,
-                );
-
-                $status = $result['success'] ? '✅' : '❌';
-                $this->line("  {$status} {$branch->name} — {$result['message']}");
-
-                break; // Only send once per shop (to first configured branch)
             }
+
+            if (!$branchUsed) {
+                $this->error("No branch with a configured Gmail account for shop {$shop->name} – cannot send debt reminder.");
+                continue;
+            }
+
+            $currency    = $shop->currency_symbol;
+            $totalDebt   = $debtors->sum('outstanding_balance');
+            $debtorCount = $debtors->count();
+            $date        = now()->format('l, d F Y');
+
+            // Build HTML rows for each debtor
+            $rows = '';
+            foreach ($debtors as $i => $customer) {
+                $bg    = $i % 2 === 0 ? '#ffffff' : '#f8fafc';
+                $rows .= "<tr style='background:{$bg}'>
+                    <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>" . htmlspecialchars($customer->name) . "</td>
+                    <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>" . ($customer->phone ?? '—') . "</td>
+                    <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;color:#dc2626;'>{$currency}" . number_format($customer->outstanding_balance, 2) . "</td>
+                </tr>";
+            }
+
+            $html = $this->buildHtml($shop, $branchUsed, $currency, $totalDebt, $debtorCount, $date, $rows);
+
+            $result = MailService::sendFromBranch(
+                branch:   $branchUsed,
+                toEmail:  $recipientEmail,   // 👈 send to the shop email
+                toName:   $shop->name,
+                subject:  "💳 Weekly Debt Report — {$debtorCount} customers owe {$currency}" . number_format($totalDebt, 2),
+                htmlBody: $html,
+            );
+
+            $status = $result['success'] ? '✅' : '❌';
+            $this->line("  {$status} {$shop->name} (via branch {$branchUsed->name}) — {$result['message']}");
         }
 
         $this->info('Done.');

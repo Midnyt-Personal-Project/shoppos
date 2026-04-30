@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
             $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('method', ['cash', 'mobile_money', 'card', 'credit'])->default('cash');
+            $table->string('receipt_number')->nullable(); // e.g. MTN, Airtel
             $table->decimal('amount', 10, 2);
             $table->string('reference')->nullable(); // mobile money ref etc.
             $table->text('notes')->nullable();

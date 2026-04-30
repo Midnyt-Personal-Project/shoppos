@@ -2,21 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Models\{Branch, Shop, User};
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, Hash};
 use Illuminate\Support\Str;
-use App\Http\Controllers\Controller;
-use App\Models\{Branch, Shop, User};
 
 class SetupController extends Controller
 {
     /** Check if setup is needed — returns JSON for the login page button */
     public function check()
-    {
-        return response()->json([
-            'needs_setup' => User::count() === 0,
-        ]);
+{
+    try {
+        $needsSetup = User::count() === 0;
+    } catch (QueryException $e) {
+        // Table doesn't exist → definitely need setup
+        $needsSetup = true;
     }
+
+    return response()->json(['needs_setup' => $needsSetup]);
+}
 
     /** Run the first-time setup */
     public function store(Request $request)

@@ -19,7 +19,7 @@
 @endpush
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 w-full min-w-0">
 
     <!-- Search & Scan -->
     <div class="flex gap-3">
@@ -39,17 +39,27 @@
         </button>
     </div>
 
-    <!-- Category Filters — rendered from $categories passed by controller -->
-    <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-        <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-brand-600 text-white font-semibold text-sm" data-category="all">All</button>
-        @foreach($categories as $cat)
-        <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-surface-card text-slate-300 font-medium text-sm hover:bg-surface-card/80 transition-colors"
-                data-category="{{ $cat }}">{{ $cat }}</button>
-        @endforeach
-    </div>
+    <!-- Category Filters -->
+    <div class="w-40 overflow-hidden">
+    <div class="overflow-x-auto overflow-y-hidden no-scrollbar">
+        <div class="flex gap-2 whitespace-nowrap px-2">
+            
+            <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-brand-600 text-white font-semibold text-sm">
+                All
+            </button>
 
-    <!-- Product Grid -->
-    <div id="productGrid" class="grid grid-cols-2 gap-4 pb-8"></div>
+            @foreach($categories as $cat)
+            <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-surface-card text-slate-300 font-medium text-sm hover:bg-surface-card/80 transition-colors">
+                {{ $cat }}
+            </button>
+            @endforeach
+
+        </div>
+    </div>
+</div>
+
+    <!-- Product Grid (responsive columns) -->
+    <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-4 pb-8 min-w-0"></div>
 
     <!-- Floating Cart Button -->
     <div class="fixed bottom-24 right-6 z-40">
@@ -98,28 +108,48 @@
                 </div>
 
                 <div class="flex justify-between items-end pt-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Tax</span>
+                        <span id="taxAmount" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                    </div>
                     <div>
                         <span class="text-xs text-slate-400 uppercase font-bold">Grand Total</span>
                         <h2 id="grandTotal" class="text-3xl font-bold text-white">{{ auth()->user()->shop->currency_symbol }}0.00</h2>
                     </div>
+                    
                     <div class="text-right">
                         <span class="text-xs text-slate-400">Stock Verified</span>
                         <p id="itemCount" class="text-sm text-slate-400">0 Items</p>
                     </div>
                 </div>
 
-                <!-- Customer selector -->
-                <select id="customerSelect" class="input w-full text-sm">
-                    <option value="">— Walk-in Customer —</option>
-                    @foreach($customers as $customer)
-                    <option value="{{ $customer->id }}">
-                        {{ $customer->name }}
-                        @if($customer->outstanding_balance > 0)
-                            (Owes {{ auth()->user()->shop->currency_symbol }}{{ number_format($customer->outstanding_balance, 2) }})
-                        @endif
-                    </option>
-                    @endforeach
-                </select>
+                <!-- Customer selector and balance -->
+                <div>
+                    <select id="customerSelect" class="input w-full text-sm">
+                        <option value="">— Walk-in Customer —</option>
+                        @foreach($customers as $customer)
+                        <option value="{{ $customer->id }}" data-balance="{{ $customer->outstanding_balance }}">
+                            {{ $customer->name }}
+                            @if($customer->outstanding_balance > 0)
+                                (Owes {{ auth()->user()->shop->currency_symbol }}{{ number_format($customer->outstanding_balance, 2) }})
+                            @endif
+                        </option>
+                        @endforeach
+                    </select>
+                    <div id="customerBalanceDisplay" class="text-xs text-slate-400 mt-1 hidden">
+                        Outstanding debt: <span id="customerBalanceAmount" class="text-amber-400 font-semibold"></span>
+                    </div>
+                </div>
+
+                <!-- Amount paid input (for partial payment) -->
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Amount Paid</label>
+                    <div class="relative">
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 ">{{ auth()->user()->shop->currency_symbol }}</span>
+                        <input type="number" id="amountPaidInput" step="0.01" min="0" class="input pl-7 w-full " value="0.00">
+                    </div>
+                    <p id="amountPaidHint" class="text-xs text-slate-500 mt-1"></p>
+                </div>
 
                 <!-- Payment method -->
                 <div class="grid grid-cols-3 gap-2">
@@ -224,57 +254,77 @@
 
 @push('scripts')
 <script>
-
 const CURRENCY = '{{ auth()->user()->shop->currency_symbol }}';
 const CSRF     = document.querySelector('meta[name="csrf-token"]').content;
 const products = @json($products);
+const TAX_RATES = @json($taxRates);
 
-// ── Default placeholder (encoded SVG — no backtick template literals) ─────
-var DEFAULT_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%231e293b'/%3E%3Cpath d='M70 80 L100 60 L130 80 L130 120 L100 140 L70 120 Z' fill='none' stroke='%23475569' stroke-width='3'/%3E%3Cpath d='M70 80 L100 100 L130 80' stroke='%23475569' stroke-width='2' fill='none'/%3E%3Cpath d='M100 100 L100 140' stroke='%23475569' stroke-width='2'/%3E%3C/svg%3E";
-
-function imgSrc(product) {
-    return product.image ? '/storage/' + product.image : DEFAULT_IMAGE;
+function calculateTax(subtotal, discount) {
+    const taxable = Math.max(0, subtotal - discount);
+    let totalTax = 0;
+    for (let tax of TAX_RATES) {
+        totalTax += taxable * (tax.rate / 100);
+    }
+    return totalTax;
 }
+
+// ── Helper: product image (uses default.jpg from public folder)
+function imgSrc(product) {
+    return product.image ? '/storage/' + product.image : '/default.jpeg';
+}
+
 function imgError(el) {
     el.onerror = null;
-    el.src = DEFAULT_IMAGE;
+    el.src = '/default.jpg';
 }
 
-// ── Cart ───────────────────────────────────────────────────────────────────
+// ── Cart state ─────────────────────────────────────────────────────────────
 var cart          = [];
 var paymentMethod = 'cash';
 var lastSaleId    = null;
+var customersList = {}; // store customer balances
+
+// Populate customersList from select options
+document.querySelectorAll('#customerSelect option').forEach(opt => {
+    if (opt.value) {
+        customersList[opt.value] = parseFloat(opt.dataset.balance || 0);
+    }
+});
 
 function getProductById(id) {
-    return products.find(function(p) { return p.id === id; });
+    return products.find(p => p.id === id);
 }
 
 function addToCart(productId) {
     var product = getProductById(productId);
-    if (!product) return;
-    if (product.stock <= 0) { alert('"' + product.name + '" is out of stock.'); return; }
-    var existing = cart.find(function(i) { return i.productId === productId; });
-    if (existing) { existing.quantity++; }
-    else { cart.push({ productId: productId, quantity: 1 }); }
+    if (!product) {
+        alert('Product not found. It may have been deactivated. Please refresh the page.');
+        return;
+    }
+    if (product.stock <= 0) {
+        alert('"' + product.name + '" is out of stock.');
+        return;
+    }
+    var existing = cart.find(i => i.productId === productId);
+    if (existing) existing.quantity++;
+    else cart.push({ productId: productId, quantity: 1 });
     updateCartUI();
     saveCart();
     playBeep();
 }
 
 function updateQuantity(productId, delta) {
-    var item = cart.find(function(i) { return i.productId === productId; });
+    var item = cart.find(i => i.productId === productId);
     if (item) {
         item.quantity += delta;
-        if (item.quantity <= 0) {
-            cart = cart.filter(function(i) { return i.productId !== productId; });
-        }
+        if (item.quantity <= 0) cart = cart.filter(i => i.productId !== productId);
     }
     updateCartUI();
     saveCart();
 }
 
 function removeItem(productId) {
-    cart = cart.filter(function(i) { return i.productId !== productId; });
+    cart = cart.filter(i => i.productId !== productId);
     updateCartUI();
     saveCart();
 }
@@ -283,14 +333,20 @@ function calculateTotals() {
     var discount  = parseFloat(document.getElementById('discountInput').value || 0);
     var subtotal  = 0;
     var itemCount = 0;
-    cart.forEach(function(item) {
+    cart.forEach(item => {
         var p = getProductById(item.productId);
-        if (p) { subtotal += p.price * item.quantity; itemCount += item.quantity; }
+        if (p) {
+            subtotal += p.price * item.quantity;
+            itemCount += item.quantity;
+        }
     });
+    var tax = calculateTax(subtotal, discount);
+    var grandTotal = Math.max(0, subtotal - discount + tax);
     return {
         subtotal:   subtotal,
         discount:   discount,
-        grandTotal: Math.max(0, subtotal - discount),
+        tax:        tax,
+        grandTotal: grandTotal,
         itemCount:  itemCount
     };
 }
@@ -300,48 +356,131 @@ function updateCartUI() {
     document.getElementById('cartBadge').innerText  = t.itemCount;
     document.getElementById('itemCount').innerText  = t.itemCount + ' Items';
     document.getElementById('subtotal').innerText   = CURRENCY + t.subtotal.toFixed(2);
+    document.getElementById('taxAmount').innerText = CURRENCY + t.tax.toFixed(2);
     document.getElementById('grandTotal').innerText = CURRENCY + t.grandTotal.toFixed(2);
 
+    // Update amount paid input default and hint
+    var amountInput = document.getElementById('amountPaidInput');
+    if (amountInput && parseFloat(amountInput.value) === 0) {
+        amountInput.value = t.grandTotal.toFixed(2);
+    }
+    updateAmountPaidHint();
+
     if (cart.length === 0) {
-        document.getElementById('cartItemsList').innerHTML =
-            '<div class="text-center text-slate-400 py-8">Cart is empty</div>';
+        document.getElementById('cartItemsList').innerHTML = '<div class="text-center text-slate-400 py-8">Cart is empty</div>';
         return;
     }
 
     var html = '';
-    cart.forEach(function(item) {
+    cart.forEach(item => {
         var p = getProductById(item.productId);
         if (!p) return;
         var lineTotal = p.price * item.quantity;
-        html += '<div class="bg-surface-card p-4 rounded-xl">'
-            + '<div class="flex gap-3">'
-            + '<img class="w-16 h-16 rounded-lg object-cover bg-surface-DEFAULT flex-shrink-0"'
-            + ' src="' + imgSrc(p) + '" alt="' + escHtml(p.name) + '" onerror="imgError(this)">'
-            + '<div class="flex-1 min-w-0">'
-            + '<h3 class="font-semibold text-white text-sm">' + escHtml(p.name) + '</h3>'
-            + '<p class="text-xs text-slate-500 font-mono">' + (p.barcode || '—') + '</p>'
-            + '<div class="flex items-center justify-between mt-2">'
-            + '<div class="flex items-center gap-2">'
-            + '<button onclick="updateQuantity(' + p.id + ',-1)" class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">−</button>'
-            + '<span class="text-white font-bold w-6 text-center">' + item.quantity + '</span>'
-            + '<button onclick="updateQuantity(' + p.id + ',1)"  class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">+</button>'
-            + '</div>'
-            + '<div class="text-right">'
-            + '<p class="text-brand-400 text-xs">' + CURRENCY + p.price.toFixed(2) + ' ea</p>'
-            + '<p class="text-white font-bold text-sm">' + CURRENCY + lineTotal.toFixed(2) + '</p>'
-            + '</div></div></div></div>'
-            + '<div class="flex justify-end mt-2">'
-            + '<button onclick="removeItem(' + p.id + ')" class="text-red-400 hover:text-red-300 text-xs">✕ Remove</button>'
-            + '</div></div>';
+        html += `<div class="bg-surface-card p-4 rounded-xl">
+            <div class="flex gap-3">
+                <img class="w-16 h-16 rounded-lg object-cover bg-surface-DEFAULT flex-shrink-0" src="${imgSrc(p)}" alt="${escHtml(p.name)}" onerror="imgError(this)">
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-white text-sm">${escHtml(p.name)}</h3>
+                    <p class="text-xs text-slate-500 font-mono">${p.barcode || '—'}</p>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <button onclick="updateQuantity(${p.id},-1)" class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">−</button>
+                            <span class="text-white font-bold w-6 text-center">${item.quantity}</span>
+                            <button onclick="updateQuantity(${p.id},1)" class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">+</button>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-brand-400 text-xs">${CURRENCY}${p.price.toFixed(2)} ea</p>
+                            <p class="text-white font-bold text-sm">${CURRENCY}${lineTotal.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end mt-2">
+                <button onclick="removeItem(${p.id})" class="text-red-400 hover:text-red-300 text-xs">✕ Remove</button>
+            </div>
+        </div>`;
     });
     document.getElementById('cartItemsList').innerHTML = html;
 }
 
 function saveCart() { localStorage.setItem('pos_cart', JSON.stringify(cart)); }
+
 function loadCart() {
     var saved = localStorage.getItem('pos_cart');
-    if (saved) { try { cart = JSON.parse(saved); updateCartUI(); } catch(e) {} }
+    if (saved) {
+        try {
+            cart = JSON.parse(saved);
+            // 🔍 Remove items with missing products
+            var originalLength = cart.length;
+            cart = cart.filter(item => {
+                var product = getProductById(item.productId);
+                if (!product) {
+                    console.warn(`Removing invalid cart item: product ${item.productId} not found`);
+                    return false;
+                }
+                return true;
+            });
+            if (cart.length !== originalLength) {
+                saveCart();
+                console.log(`Removed ${originalLength - cart.length} invalid item(s) from cart`);
+                if (originalLength - cart.length > 0) {
+                    setTimeout(() => {
+                        alert(`Removed ${originalLength - cart.length} product(s) that are no longer available.`);
+                    }, 100);
+                }
+            }
+            updateCartUI();
+        } catch(e) { console.error(e); }
+    }
 }
+
+// ── Customer balance display and amount paid logic ────────────────────────
+function updateCustomerBalance() {
+    var select = document.getElementById('customerSelect');
+    var selectedId = select.value;
+    var balanceDiv = document.getElementById('customerBalanceDisplay');
+    var balanceSpan = document.getElementById('customerBalanceAmount');
+    if (selectedId && customersList[selectedId] > 0) {
+        balanceSpan.innerText = CURRENCY + customersList[selectedId].toFixed(2);
+        balanceDiv.classList.remove('hidden');
+    } else {
+        balanceDiv.classList.add('hidden');
+    }
+    updateAmountPaidHint();
+}
+
+function updateAmountPaidHint() {
+    var amountInput = document.getElementById('amountPaidInput');
+    var grandTotal = parseFloat(document.getElementById('grandTotal').innerText.replace(CURRENCY, ''));
+    var customerId = document.getElementById('customerSelect').value;
+    var hint = document.getElementById('amountPaidHint');
+    if (!customerId) {
+        hint.innerText = 'Walk-in customers must pay full amount.';
+        amountInput.value = grandTotal.toFixed(2);
+        amountInput.readOnly = true;
+    } else {
+        amountInput.readOnly = false;
+        var balance = customersList[customerId] || 0;
+        if (balance > 0) {
+            hint.innerText = `Customer owes ${CURRENCY}${balance.toFixed(2)}. You can pay more to reduce debt.`;
+        } else {
+            hint.innerText = 'You can pay less (remaining becomes debt) or full amount.';
+        }
+        // Set default to grand total if amount is zero
+        var currentVal = parseFloat(amountInput.value);
+        if (isNaN(currentVal) || currentVal === 0) {
+            amountInput.value = grandTotal.toFixed(2);
+        }
+    }
+}
+
+document.getElementById('customerSelect').addEventListener('change', updateCustomerBalance);
+document.getElementById('amountPaidInput').addEventListener('input', function() {
+    var grandTotal = parseFloat(document.getElementById('grandTotal').innerText.replace(CURRENCY, ''));
+    var val = parseFloat(this.value);
+    if (isNaN(val)) this.value = grandTotal.toFixed(2);
+    else if (val < 0) this.value = '0';
+});
 
 // ── Product grid ───────────────────────────────────────────────────────────
 var activeCategory = 'all';
@@ -350,49 +489,47 @@ var searchTerm     = '';
 function renderProducts(filter, category) {
     filter   = filter   || '';
     category = category || 'all';
-
-    var list = products.filter(function(p) {
-        var matchSearch   = !filter
-            || p.name.toLowerCase().indexOf(filter.toLowerCase()) !== -1
-            || (p.barcode && p.barcode.indexOf(filter) !== -1);
+    var list = products.filter(p => {
+        var matchSearch   = !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || (p.barcode && p.barcode.includes(filter));
         var matchCategory = category === 'all' || p.category === category;
         return matchSearch && matchCategory;
     });
-
     var grid = document.getElementById('productGrid');
     if (list.length === 0) {
-        grid.innerHTML = '<div class="col-span-2 text-center text-slate-600 py-16">No products found</div>';
+        grid.innerHTML = '<div class="col-span-full text-center text-slate-600 py-16">No products found</div>';
         return;
     }
-
-    grid.innerHTML = list.map(function(p) {
+    grid.innerHTML = list.map(p => {
         var badge = '';
         if (p.stock <= 0) {
-            badge = '<div class="absolute inset-0 bg-black/60 flex items-center justify-center">'
-                  + '<span class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded">Out of Stock</span></div>';
+            badge = '<div class="absolute inset-0 bg-black/60 flex items-center justify-center"><span class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded">Out of Stock</span></div>';
         } else if (p.stock <= 5) {
-            badge = '<div class="absolute bottom-1 right-1 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Low: ' + p.stock + '</div>';
+            badge = `<div class="absolute bottom-1 right-1 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Low: ${p.stock}</div>`;
         }
         var disabled = p.stock <= 0 ? ' opacity-50 cursor-not-allowed' : '';
-        return '<div class="card p-3 flex flex-col cursor-pointer hover:border-brand-600/50 transition-colors border border-transparent" onclick="addToCart(' + p.id + ')">'
-            + '<div class="aspect-square overflow-hidden rounded-lg mb-3 bg-slate-800 relative">'
-            + '<img class="w-full h-full object-cover" src="' + imgSrc(p) + '" alt="' + escHtml(p.name) + '" onerror="imgError(this)">'
-            + badge + '</div>'
-            + '<h3 class="font-bold text-white text-sm line-clamp-2 flex-1">' + escHtml(p.name) + '</h3>'
-            + '<p class="text-xs text-slate-500 font-mono mt-0.5">' + (p.barcode || '—') + '</p>'
-            + '<div class="flex items-center justify-between mt-3">'
-            + '<span class="text-lg font-bold text-brand-400">' + CURRENCY + p.price.toFixed(2) + '</span>'
-            + '<button onclick="event.stopPropagation();addToCart(' + p.id + ')" class="btn-primary p-2 rounded-lg' + disabled + '">'
-            + '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
-            + '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button>'
-            + '</div></div>';
+        return `<div class="card p-3 flex flex-col cursor-pointer hover:border-brand-600/50 transition-colors border border-transparent min-w-0" onclick="addToCart(${p.id})">
+            <div class="aspect-square overflow-hidden rounded-lg mb-3 bg-slate-800 relative">
+                <img class="w-full h-full object-cover" src="${imgSrc(p)}" alt="${escHtml(p.name)}" onerror="imgError(this)">
+                ${badge}
+            </div>
+            <h3 class="font-bold text-white text-sm line-clamp-2 flex-1">${escHtml(p.name)}</h3>
+            <p class="text-xs text-slate-500 font-mono mt-0.5">${p.barcode || '—'}</p>
+            <div class="flex items-center justify-between mt-3">
+                <span class="text-lg font-bold text-brand-400">${CURRENCY}${p.price.toFixed(2)}</span>
+                <button onclick="event.stopPropagation();addToCart(${p.id})" class="btn-primary p-2 rounded-lg${disabled}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+        </div>`;
     }).join('');
 }
 
-// ── Category filter buttons ────────────────────────────────────────────────
-document.querySelectorAll('.filter-btn').forEach(function(btn) {
+// Category filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.filter-btn').forEach(function(b) {
+        document.querySelectorAll('.filter-btn').forEach(b => {
             var active = b === btn;
             b.className = 'filter-btn flex-shrink-0 px-5 py-2 rounded-full font-medium text-sm transition-colors '
                 + (active ? 'bg-brand-600 text-white font-semibold' : 'bg-surface-card text-slate-300 hover:bg-surface-card/80');
@@ -402,76 +539,124 @@ document.querySelectorAll('.filter-btn').forEach(function(btn) {
     });
 });
 
-document.getElementById('searchInput').addEventListener('input', function(e) {
+document.getElementById('searchInput').addEventListener('input', e => {
     searchTerm = e.target.value;
     renderProducts(searchTerm, activeCategory);
 });
-
 document.getElementById('discountInput').addEventListener('input', updateCartUI);
 
 // ── Payment method ─────────────────────────────────────────────────────────
 function setPaymentMethod(method) {
     paymentMethod = method;
-    ['cash', 'mobile_money', 'card'].forEach(function(m) {
+    ['cash', 'mobile_money', 'card'].forEach(m => {
         var el = document.getElementById('pm-' + m);
-        if (!el) return;
-        el.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all '
-            + (m === method ? 'bg-brand-600 text-white border-brand-600'
-                            : 'bg-slate-800 text-slate-400 border-slate-700');
+        if (el) {
+            el.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all ' +
+                (m === method ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-800 text-slate-400 border-slate-700');
+        }
     });
 }
 
-// ── Checkout ───────────────────────────────────────────────────────────────
+// ── Checkout (supports partial payment and debt reduction) ─────────────────
 document.getElementById('collectPaymentBtn').addEventListener('click', async function() {
-    if (cart.length === 0) { alert('Cart is empty. Add items first.'); return; }
+    if (cart.length === 0) {
+        alert('Cart is empty. Add items first.');
+        return;
+    }
 
     var btn = document.getElementById('collectPaymentBtn');
-    btn.disabled  = true;
+    btn.disabled = true;
     btn.innerHTML = 'Processing…';
 
+    // 🔍 Validate all cart items exist in products array
+    var validItems = [];
+    var missingIds = [];
+    for (var i = 0; i < cart.length; i++) {
+        var p = getProductById(cart[i].productId);
+        if (!p) {
+            missingIds.push(cart[i].productId);
+        } else {
+            validItems.push({
+                id: cart[i].productId,
+                qty: cart[i].quantity,
+                price: p.price,
+                discount: 0
+            });
+        }
+    }
+
+    if (missingIds.length > 0) {
+        alert(`The following product IDs are missing from the product list: ${missingIds.join(', ')}\nPlease refresh the page and try again.`);
+        btn.disabled = false;
+        btn.innerHTML = 'COLLECT PAYMENT';
+        return;
+    }
+
     var t = calculateTotals();
+    var customerId = document.getElementById('customerSelect').value || null;
+    var amountPaid = parseFloat(document.getElementById('amountPaidInput').value || 0);
+    var grandTotal = t.grandTotal;
+
+    if (customerId === null && amountPaid < grandTotal - 0.01) {
+        alert('Walk-in customers must pay the full amount.');
+        btn.disabled = false;
+        btn.innerHTML = 'COLLECT PAYMENT';
+        return;
+    }
+    if (isNaN(amountPaid)) amountPaid = 0;
+    if (amountPaid < 0) amountPaid = 0;
+
     var payload = {
-        items: cart.map(function(i) {
-            var p = getProductById(i.productId);
-            return { id: i.productId, qty: i.quantity, price: p.price, discount: 0 };
-        }),
-        payments:    [{ method: paymentMethod, amount: t.grandTotal }],
+        items: validItems,
+        payments:    [{ method: paymentMethod, amount: amountPaid }],
         discount:    t.discount,
         tax:         0,
-        customer_id: document.getElementById('customerSelect').value || null,
+        customer_id: customerId,
     };
 
+    console.log('📤 Sending checkout request:', payload);
+
     try {
-        var res  = await fetch('/pos/checkout', {
+        var res = await fetch('/pos/checkout', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
             body:    JSON.stringify(payload),
         });
         var data = await res.json();
+        console.log('📥 Response:', data);
 
-        if (data.success) {
-            lastSaleId = data.sale_id;
-            document.getElementById('completedRef').innerText = data.reference;
-            var changeEl = document.getElementById('changeDisplay');
-            if (data.change > 0) {
-                changeEl.classList.remove('hidden');
-                document.getElementById('changeAmount').innerText = CURRENCY + parseFloat(data.change).toFixed(2);
-            } else {
-                changeEl.classList.add('hidden');
-            }
-            document.getElementById('cartModal').classList.add('hidden');
-            document.getElementById('saleCompleteModal').classList.remove('hidden');
-            cart = [];
-            localStorage.removeItem('pos_cart');
-            updateCartUI();
-            playBeep();
+        if (!res.ok || !data.success) {
+            alert('Checkout failed: ' + (data.message || 'Server error'));
+            btn.disabled = false;
+            btn.innerHTML = 'COLLECT PAYMENT';
+            return;
+        }
+
+        // Success handling
+        lastSaleId = data.sale_id;
+        document.getElementById('completedRef').innerText = data.reference;
+        var changeEl = document.getElementById('changeDisplay');
+        if (data.change > 0) {
+            changeEl.classList.remove('hidden');
+            document.getElementById('changeAmount').innerText = CURRENCY + parseFloat(data.change).toFixed(2);
         } else {
-            alert('Error: ' + (data.message || 'Checkout failed'));
+            changeEl.classList.add('hidden');
+        }
+        document.getElementById('cartModal').classList.add('hidden');
+        document.getElementById('saleCompleteModal').classList.remove('hidden');
+        cart = [];
+        localStorage.removeItem('pos_cart');
+        updateCartUI();
+        playBeep();
+        if (customerId && data.new_balance !== undefined) {
+            customersList[customerId] = data.new_balance;
+            updateCustomerBalance();
         }
     } catch(e) {
-        alert('Network error. Please try again.');
+        console.error('❌ Error:', e);
+        alert('Network error: ' + e.message);
     } finally {
-        btn.disabled  = false;
+        btn.disabled = false;
         btn.innerHTML = 'COLLECT PAYMENT';
     }
 });
@@ -483,9 +668,11 @@ document.getElementById('printReceiptBtn').addEventListener('click', function() 
 function newSale() {
     document.getElementById('saleCompleteModal').classList.add('hidden');
     document.getElementById('customerSelect').value = '';
-    document.getElementById('discountInput').value  = 0;
+    document.getElementById('discountInput').value = 0;
+    document.getElementById('amountPaidInput').value = '0';
     setPaymentMethod('cash');
     document.getElementById('searchInput').focus();
+    updateCustomerBalance();
 }
 
 document.getElementById('receiptButton').addEventListener('click', function() {
@@ -497,17 +684,22 @@ document.getElementById('receiptButton').addEventListener('click', function() {
 document.getElementById('addCustomerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     var data = {};
-    new FormData(e.target).forEach(function(v, k) { data[k] = v; });
+    new FormData(e.target).forEach((v,k) => data[k] = v);
     try {
-        var res      = await fetch('/customers', {
-            method:  'POST',
+        var res = await fetch('/customers', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body:    JSON.stringify(data),
+            body: JSON.stringify(data),
         });
         var customer = await res.json();
         if (customer.id) {
             var sel = document.getElementById('customerSelect');
-            sel.appendChild(new Option(customer.name, customer.id, true, true));
+            var option = new Option(customer.name, customer.id);
+            option.dataset.balance = '0';
+            sel.appendChild(option);
+            customersList[customer.id] = 0;
+            sel.value = customer.id;
+            updateCustomerBalance();
             e.target.reset();
             document.getElementById('customerModal').classList.add('hidden');
             document.getElementById('cartModal').classList.remove('hidden');
@@ -515,29 +707,28 @@ document.getElementById('addCustomerForm').addEventListener('submit', async func
     } catch(e) { alert('Error saving customer.'); }
 });
 
-// ── USB barcode scanner (keyboard wedge) ──────────────────────────────────
+// ── USB barcode scanner ────────────────────────────────────────────────────
 var _buf = '', _timer = null;
 document.addEventListener('keydown', function(e) {
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
     if (e.key === 'Enter' && _buf.length > 2) {
-        var found = products.find(function(p) { return p.barcode === _buf; });
+        var found = products.find(p => p.barcode === _buf);
         if (found) addToCart(found.id);
         else { document.getElementById('searchInput').value = _buf; renderProducts(_buf, activeCategory); }
         _buf = '';
     } else if (e.key.length === 1) {
         _buf += e.key;
         clearTimeout(_timer);
-        _timer = setTimeout(function() { _buf = ''; }, 200);
+        _timer = setTimeout(() => { _buf = ''; }, 200);
     }
 });
 
 // ── Camera scanner ─────────────────────────────────────────────────────────
 var html5QrCode = null;
-
 async function startScanner() {
     try {
         var stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(function(t) { t.stop(); });
+        stream.getTracks().forEach(t => t.stop());
     } catch(err) {
         alert(err.name === 'NotAllowedError' ? 'Camera permission denied.' : 'Camera not available: ' + err.message);
         return;
@@ -549,20 +740,19 @@ async function startScanner() {
         { facingMode: 'environment' },
         { fps: 15, qrbox: { width: 280, height: 280 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
         function(decodedText) {
-            var p = products.find(function(x) { return x.barcode === decodedText; });
+            var p = products.find(x => x.barcode === decodedText);
             if (p) addToCart(p.id);
             else alert('Barcode ' + decodedText + ' not found');
             stopScanner();
         },
         function() {}
-    ).catch(function(err) { alert('Could not start scanner: ' + (err.message || err)); stopScanner(); });
+    ).catch(err => { alert('Could not start scanner: ' + (err.message || err)); stopScanner(); });
 }
 
 function stopScanner() {
     if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop()
-            .then(function() { document.getElementById('scannerOverlay').classList.add('hidden'); })
-            .catch(function() { document.getElementById('scannerOverlay').classList.add('hidden'); });
+        html5QrCode.stop().then(() => document.getElementById('scannerOverlay').classList.add('hidden'))
+            .catch(() => document.getElementById('scannerOverlay').classList.add('hidden'));
     } else {
         document.getElementById('scannerOverlay').classList.add('hidden');
     }
@@ -571,7 +761,7 @@ function stopScanner() {
 function handleManualBarcode() {
     var barcode = document.getElementById('manualBarcode').value.trim();
     if (!barcode) return;
-    var p = products.find(function(x) { return x.barcode === barcode; });
+    var p = products.find(x => x.barcode === barcode);
     if (p) { addToCart(p.id); stopScanner(); }
     else alert('Product with barcode "' + barcode + '" not found.');
     document.getElementById('manualBarcode').value = '';
@@ -580,22 +770,15 @@ function handleManualBarcode() {
 document.getElementById('scanButton').addEventListener('click', startScanner);
 document.getElementById('closeScanner').addEventListener('click', stopScanner);
 document.getElementById('submitBarcode').addEventListener('click', handleManualBarcode);
-document.getElementById('manualBarcode').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') handleManualBarcode();
-});
+document.getElementById('manualBarcode').addEventListener('keypress', e => { if (e.key === 'Enter') handleManualBarcode(); });
 
 // ── Cart modal open/close ──────────────────────────────────────────────────
-document.getElementById('cartButton').addEventListener('click', function() {
+document.getElementById('cartButton').addEventListener('click', () => {
+    updateCustomerBalance();
     document.getElementById('cartModal').classList.remove('hidden');
 });
-document.getElementById('closeCartModal').addEventListener('click', function() {
-    document.getElementById('cartModal').classList.add('hidden');
-});
-document.getElementById('cartModal').addEventListener('click', function(e) {
-    if (e.target === document.getElementById('cartModal')) {
-        document.getElementById('cartModal').classList.add('hidden');
-    }
-});
+document.getElementById('closeCartModal').addEventListener('click', () => document.getElementById('cartModal').classList.add('hidden'));
+document.getElementById('cartModal').addEventListener('click', e => { if (e.target === document.getElementById('cartModal')) document.getElementById('cartModal').classList.add('hidden'); });
 
 // ── Beep ───────────────────────────────────────────────────────────────────
 function playBeep() {
@@ -612,14 +795,13 @@ function playBeep() {
 }
 
 function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 renderProducts();
-loadCart();
+loadCart();   // ← automatically removes missing products
 document.getElementById('searchInput').focus();
+updateCustomerBalance();
 </script>
 @endpush

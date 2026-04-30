@@ -14,44 +14,41 @@ class SendSaleNotification implements ShouldQueue
     {
         $sale   = $event->sale->load(['branch.shop', 'items', 'user', 'customer']);
         $branch = $sale->branch;
-        $shopId = $branch->shop_id;
+        $shop   = $branch->shop;
+        $shopId = $shop->id;
 
         Log::info('SendSaleNotification: Sale notification triggered', [
-            'sale_id' => $sale->id,
-            'branch' => $branch->name,
-            'reference' => $sale->reference,
+            'sale_id'    => $sale->id,
+            'branch'     => $branch->name,
+            'reference'  => $sale->reference,
+            'shop_email' => $shop->email,
         ]);
 
-        // Check toggle
+        // Check if new sale notifications are enabled
         $notifyEnabled = ShopSetting::get($shopId, 'notify_new_sale', false);
-        Log::debug('SendSaleNotification: Checking notify_new_sale toggle', [
-            'shop_id' => $shopId,
-            'notify_new_sale' => $notifyEnabled,
-        ]);
-        
         if (! $notifyEnabled) {
             Log::info('SendSaleNotification: Skipped - notify_new_sale is disabled');
             return;
         }
 
-        // Check branch email configured and enabled
+        // Get branch mail config (used as SENDER)
         $mailConfig = ShopSetting::branchMailConfig($shopId, $branch->id);
-        
-        Log::debug('SendSaleNotification: Mail config retrieved', [
-            'branch_id' => $branch->id,
-            'has_gmail' => !empty($mailConfig['gmail_address']),
-            'enabled' => $mailConfig['enabled'] ?? false,
-            'gmail_address' => $mailConfig['gmail_address'] ?? 'not set',
-        ]);
-        
         if (empty($mailConfig['gmail_address']) || ! $mailConfig['enabled']) {
-            Log::info('SendSaleNotification: Skipped - Mail not configured or disabled', [
-                'reason' => empty($mailConfig['gmail_address']) ? 'no_gmail' : 'disabled',
+            Log::info('SendSaleNotification: Skipped - branch email not configured or disabled');
+            return;
+        }
+
+        // 🎯 RECIPIENT is the shop's email address
+        $recipientEmail = $shop->email;
+        if (empty($recipientEmail)) {
+            Log::error('SendSaleNotification: Shop has no email, cannot send notification', [
+                'shop_id' => $shopId,
+                'sale_id' => $sale->id,
             ]);
             return;
         }
 
-        $currency = $branch->shop->currency_symbol;
+        $currency = $shop->currency_symbol;
 
         // Build items HTML
         $itemsHtml = '';
@@ -63,23 +60,24 @@ class SendSaleNotification implements ShouldQueue
             </tr>";
         }
 
-        $customerName = $sale->customer?->name ?? 'Walk-in';
-        $cashierName  = $sale->user->name;
-        $paymentStatus = ucfirst($sale->payment_status);
-        $time = $sale->created_at->format('h:i A');
+        $customerName   = $sale->customer?->name ?? 'Walk-in';
+        $cashierName    = $sale->user->name;
+        $paymentStatus  = ucfirst($sale->payment_status);
+        $time           = $sale->created_at->format('h:i A');
 
         $html = self::buildHtml($branch, $sale, $currency, $itemsHtml, $customerName, $cashierName, $paymentStatus, $time);
 
         Log::info('SendSaleNotification: Sending mail', [
-            'sale_id' => $sale->id,
-            'to_email' => $mailConfig['gmail_address'],
-            'subject_preview' => "🧾 New Sale {$sale->reference} — {$currency}" . number_format($sale->total, 2),
+            'sale_id'    => $sale->id,
+            'from'       => $mailConfig['gmail_address'],
+            'to'         => $recipientEmail,
+            'subject'    => "🧾 New Sale {$sale->reference} — {$currency}" . number_format($sale->total, 2),
         ]);
 
         $result = MailService::sendFromBranch(
             branch:   $branch,
-            toEmail:  $mailConfig['gmail_address'],
-            toName:   $branch->name,
+            toEmail:  $recipientEmail,
+            toName:   $shop->name,
             subject:  "🧾 New Sale {$sale->reference} — {$currency}" . number_format($sale->total, 2) . " [{$branch->name}]",
             htmlBody: $html,
         );
@@ -89,7 +87,7 @@ class SendSaleNotification implements ShouldQueue
         } else {
             Log::error('SendSaleNotification: Mail send failed', [
                 'sale_id' => $sale->id,
-                'error' => $result['message'],
+                'error'   => $result['message'],
             ]);
         }
     }

@@ -9,7 +9,7 @@ class SaleItem extends Model
 {
     protected $fillable = [
         'sale_id', 'product_id', 'product_name',
-        'price', 'cost', 'quantity', 'discount', 'total',
+        'price', 'cost', 'quantity', 'discount', 'total','tax_rate','tax_amount',
         'is_returned', 'returned_quantity',
     ];
 
@@ -19,6 +19,8 @@ class SaleItem extends Model
         'quantity'          => 'float',
         'discount'          => 'float',
         'total'             => 'float',
+        'tax_rate'          => 'decimal:2',
+        'tax_amount'        => 'decimal:2',
         'returned_quantity' => 'float',
         'is_returned'       => 'boolean',
     ];

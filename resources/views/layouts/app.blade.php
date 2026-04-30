@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+     <link rel="icon" type="image/png" href="{{ asset('icon.png') }}">
     <title>@yield('title', 'POS System') — {{ auth()->user()->shop->name ?? 'POS' }}</title>
 
     {{--
@@ -74,6 +75,19 @@
                 </svg>
                 Sales
             </a>
+            
+            <a href="{{ route('purchase-orders.index') }}"
+                class="nav-link {{ request()->routeIs('purchase-orders.*') ? 'active' : '' }}">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Purchase Orders
+                    @php $pending = \App\Models\PurchaseOrder::where('shop_id', auth()->user()->shop_id)->where('status','pending')->count(); @endphp
+                    @if($pending > 0 && auth()->user()->isAdmin())
+                    <span class="ml-auto badge bg-amber-500/20 text-amber-400 text-[10px]">{{ $pending }}</span>
+                    @endif
+            </a>
 
             @if(auth()->user()->isManager())
             <a href="{{ route('products.index') }}"
@@ -106,18 +120,7 @@
                 Expenses
             </a>
 
-            <a href="{{ route('purchase-orders.index') }}"
-                class="nav-link {{ request()->routeIs('purchase-orders.*') ? 'active' : '' }}">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                    </svg>
-                    Purchase Orders
-                    @php $pending = \App\Models\PurchaseOrder::where('shop_id', auth()->user()->shop_id)->where('status','pending')->count(); @endphp
-                    @if($pending > 0 && auth()->user()->isAdmin())
-                    <span class="ml-auto badge bg-amber-500/20 text-amber-400 text-[10px]">{{ $pending }}</span>
-                    @endif
-            </a>
+            
 
             <p class="nav-section-label">Reports</p>
 
@@ -269,7 +272,8 @@
         @endif
 
         {{-- Page Content --}}
-        <main class="flex-1 p-6">
+       
+        <main class="flex-1 w-full min-w-0 px-6 py-4 h-full overflow-y-auto">
             @yield('content')
         </main>
     </div>

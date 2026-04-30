@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-2xl">
-    <form method="POST" action="{{ route('products.store') }}" class="space-y-5"
+    <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data" class="space-y-5"
           x-data="{
               scanMode: false,
               stream: null,
@@ -81,6 +81,20 @@
                     <label class="text-slate-400 text-xs mb-1 block">Description</label>
                     <textarea name="description" rows="2" class="input resize-none" placeholder="Optional description">{{ old('description') }}</textarea>
                 </div>
+
+               
+                <div >
+                    <label class="text-slate-400 text-xs mb-1 block">Product Image</label>
+                    <input type="file" name="image" accept="image/jpeg,image/png,image/jpg,image/gif"  class="input">
+                    <p class="text-slate-500 text-xs mt-1">Optional product image (max 2MB). Will be displayed in POS and sales receipts.</p>
+
+                </div>
+
+                <div id="imagePreview" class="mt-2 hidden">
+                        <img src="#" alt="Image Preview" class="w-24 h-24 object-cover rounded">
+                </div>
+
+
             </div>
         </div>
 
@@ -167,4 +181,21 @@
         </div>
     </form>
 </div>
+<script>
+    // Image preview
+    document.querySelector('input[name="image"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.querySelector('#imagePreview img');
+                img.src = event.target.result;
+                document.getElementById('imagePreview').classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        } else {
+            document.getElementById('imagePreview').classList.add('hidden');
+        }
+    });
+</script>
 @endsection

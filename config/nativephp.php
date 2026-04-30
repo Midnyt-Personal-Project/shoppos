@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'version' => env('NATIVEPHP_APP_VERSION', '1.0.5'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.0.7'),
 
     /*
     |--------------------------------------------------------------------------
@@ -347,6 +347,15 @@ return [
     'postbuild' => [
         'npm run release', // Run a command after the build
     ],
+
+    'processes' => [
+    'auto-sync' => [
+        'command' => 'php artisan sync:auto',
+        'cwd' => base_path(),
+        'start' => true,
+        'restart_on_exit' => true,
+    ],
+],
 
 
 

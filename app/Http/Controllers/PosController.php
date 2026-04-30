@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{DB, Log};
 use App\Events\{SaleCompleted, StockLow};
-use App\Models\{ActivityLog, BranchStock, Customer, Payment, Product, Sale, SaleItem};
+use App\Models\{ActivityLog, BranchStock, Customer, Payment, Product, Sale, SaleItem, TaxRate};
 
 class PosController extends Controller
 {
@@ -14,6 +14,8 @@ class PosController extends Controller
         $user     = auth()->user();
         $branchId = $user->branch_id;
         $customers = Customer::where('shop_id', $user->shop_id)->orderBy('name')->get();
+       
+        $taxRates = TaxRate::where('is_active', true)->orderBy('order')->get(['name', 'rate']);
 
         $products = Product::where('shop_id', $user->shop_id)
             ->where('is_active', true)
@@ -22,6 +24,7 @@ class PosController extends Controller
             ->get()
             ->map(fn($p) => [
                 'id'       => $p->id,
+                'is_active' => $p->is_active,
                 'name'     => $p->name,
                 'barcode'  => $p->barcode ?? '',
                 'price'    => (float) $p->price,
@@ -33,9 +36,11 @@ class PosController extends Controller
             ])
             ->values();
 
+            // dd($products);
+
         $categories = $products->pluck('category')->filter()->unique()->sort()->values();
 
-        return view('pos.index', compact('customers', 'products', 'categories'));
+        return view('pos.index', compact('customers', 'products', 'categories', 'taxRates'));
     }
 
     public function searchProduct(Request $request)
@@ -63,135 +68,336 @@ class PosController extends Controller
         return response()->json($products);
     }
 
-    public function checkout(Request $request)
-    {
-        $request->validate([
-            'items'             => 'required|array|min:1',
-            'items.*.id'        => 'required|exists:products,id',
-            'items.*.qty'       => 'required|numeric|min:0.01',
-            'items.*.price'     => 'required|numeric|min:0',
-            'payments'          => 'required|array|min:1',
-            'payments.*.method' => 'required|in:cash,mobile_money,card,credit',
-            'payments.*.amount' => 'required|numeric|min:0',
+
+    // <-- add this at the top of your controller
+
+    // ... rest of your controller code ...
+
+ public function checkout(Request $request)
+{
+    $request->validate([
+        'items'             => 'required|array|min:1',
+        'items.*.id'        => 'required|exists:products,id',
+        'items.*.qty'       => 'required|numeric|min:0.01',
+        'items.*.price'     => 'required|numeric|min:0',
+        'payments'          => 'required|array|min:1',
+        'payments.*.method' => 'required|in:cash,mobile_money,card',
+        'payments.*.amount' => 'required|numeric|min:0',
+        'discount'          => 'nullable|numeric|min:0',
+        'customer_id'       => 'nullable|exists:customers,id',
+    ]);
+
+    $user       = auth()->user();
+    $branchId   = $user->branch_id;
+    $shop       = $user->shop;
+
+    // Get all active tax rates once
+    $taxRates = TaxRate::where('is_active', true)->orderBy('order')->get();
+
+    $discount   = (float) ($request->discount ?? 0);
+    $customerId = $request->customer_id ?: null;
+
+    DB::beginTransaction();
+    try {
+        // ── 1. Subtotal after item discounts (no tax) ─────────────────────
+        $subtotal = 0;
+        $saleItems = [];
+
+        foreach ($request->items as $item) {
+            $product = Product::findOrFail($item['id']);
+            $qty = (float) $item['qty'];
+            $price = (float) $item['price'];
+            $itemDisc = (float) ($item['discount'] ?? 0);
+            $lineSubtotal = ($price * $qty) - $itemDisc;
+            $subtotal += $lineSubtotal;
+
+            $saleItems[] = compact('product', 'qty', 'price', 'itemDisc', 'lineSubtotal');
+        }
+
+        // ── 2. Apply global discount to get taxable amount ─────────────────
+        $taxableTotal = max(0, $subtotal - $discount);
+
+        // ── 3. Calculate tax on the discounted total (all active tax rates) ─
+        $taxBreakdown = [];
+        $taxTotal = 0;
+        foreach ($taxRates as $tax) {
+            $taxAmount = round($taxableTotal * ($tax->rate / 100), 2);
+            $taxBreakdown[$tax->name] = $taxAmount;
+            $taxTotal += $taxAmount;
+        }
+
+        // ── 4. Final total ────────────────────────────────────────────────
+        $total = $taxableTotal + $taxTotal;
+
+        // ── 5. Allocate tax proportionally to each sale item ───────────────
+        foreach ($saleItems as &$si) {
+            $lineSubtotal = $si['lineSubtotal'];
+            if ($taxableTotal > 0 && $taxTotal > 0) {
+                $allocatedTax = round(($lineSubtotal / $taxableTotal) * $taxTotal, 2);
+            } else {
+                $allocatedTax = 0;
+            }
+            $si['lineTax']   = $allocatedTax;
+            $si['lineTotal'] = $lineSubtotal + $allocatedTax;
+        }
+        unset($si);
+
+        // ── Payment & sale creation ────────────────────────────────────────
+        $totalPaid = round(collect($request->payments)->sum('amount'), 2);
+        $change = round(max(0, $totalPaid - $total), 2);
+        $balanceDue = round(max(0, $total - $totalPaid), 2);
+        $paymentStatus = $balanceDue <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'unpaid');
+
+        $reference = Sale::generateReference($branchId);
+
+        $sale = Sale::create([
+            'reference'      => $reference,
+            'branch_id'      => $branchId,
+            'user_id'        => $user->id,
+            'customer_id'    => $customerId,
+            'subtotal'       => $subtotal,
+            'discount'       => $discount,
+            'tax_total'      => $taxTotal,
+            'tax_breakdown'  => $taxBreakdown,
+            'total'          => $total,
+            'amount_paid'    => $totalPaid,
+            'change'         => $change,
+            'balance_due'    => $balanceDue,
+            'status'         => 'completed',
+            'payment_status' => $paymentStatus,
+            'notes'          => $request->notes ?? null,
         ]);
 
-        $user       = auth()->user();
-        $branchId   = $user->branch_id;
-        $discount   = (float) ($request->discount ?? 0);
-        $tax        = (float) ($request->tax ?? 0);
-        $customerId = $request->customer_id ?: null;
-
-        DB::beginTransaction();
-        try {
-            $subtotal       = 0;
-            $saleItems      = [];
-            $soldProductIds = [];
-
-            foreach ($request->items as $item) {
-                $product   = Product::findOrFail($item['id']);
-                $qty       = (float) $item['qty'];
-                $price     = (float) $item['price'];
-                $itemDisc  = (float) ($item['discount'] ?? 0);
-                $lineTotal = ($price * $qty) - $itemDisc;
-                $subtotal += $lineTotal;
-
-                $saleItems[]      = compact('product', 'qty', 'price', 'itemDisc', 'lineTotal');
-                $soldProductIds[] = $product->id;
-            }
-
-            $total         = $subtotal - $discount + $tax;
-            $totalPaid     = collect($request->payments)->sum('amount');
-            $balanceDue    = max(0, $total - $totalPaid);
-            $change        = max(0, $totalPaid - $total);
-            $paymentStatus = $balanceDue <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'unpaid');
-
-            $sale = Sale::create([
-                'reference'      => Sale::generateReference($branchId),
-                'branch_id'      => $branchId,
-                'user_id'        => $user->id,
-                'customer_id'    => $customerId,
-                'subtotal'       => $subtotal,
-                'discount'       => $discount,
-                'tax'            => $tax,
-                'total'          => $total,
-                'amount_paid'    => $totalPaid,
-                'change'         => $change,
-                'balance_due'    => $balanceDue,
-                'status'         => 'completed',
-                'payment_status' => $paymentStatus,
-                'notes'          => $request->notes,
+        // ── Create sale items and deduct stock ────────────────────────────
+        foreach ($saleItems as $si) {
+            SaleItem::create([
+                'sale_id'      => $sale->id,
+                'product_id'   => $si['product']->id,
+                'product_name' => $si['product']->name,
+                'quantity'     => $si['qty'],
+                'price'        => $si['price'],
+                'discount'     => $si['itemDisc'],
+                'tax_rate'     => $taxRates->sum('rate'),
+                'tax_amount'   => $si['lineTax'],
+                'total'        => $si['lineTotal'],
+                'cost'         => $si['product']->cost,
             ]);
 
-            foreach ($saleItems as $si) {
-                SaleItem::create([
-                    'sale_id'      => $sale->id,
-                    'product_id'   => $si['product']->id,
-                    'product_name' => $si['product']->name,
-                    'price'        => $si['price'],
-                    'cost'         => $si['product']->cost,
-                    'quantity'     => $si['qty'],
-                    'discount'     => $si['itemDisc'],
-                    'total'        => $si['lineTotal'],
-                ]);
-
-                BranchStock::deduct($branchId, $si['product']->id, $si['qty']);
-            }
-
-            foreach ($request->payments as $pay) {
-                Payment::create([
-                    'sale_id'     => $sale->id,
-                    'customer_id' => $customerId,
-                    'method'      => $pay['method'],
-                    'amount'      => $pay['amount'],
-                    'reference'   => $pay['reference'] ?? null,
-                ]);
-            }
-
-            if ($balanceDue > 0 && $customerId) {
-                Customer::find($customerId)->addDebt($balanceDue);
-            }
-
-            ActivityLog::record('sale_completed', ['reference' => $sale->reference, 'total' => $total], $sale);
-
-            DB::commit();
-
-            // ── Fire events AFTER commit ──────────────────────────────────────
-
-            // Event 1: new sale notification
-            SaleCompleted::dispatch($sale);
-
-            // Event 2: low stock check for any product just sold
-            $lowItems = BranchStock::with('product')
-                ->where('branch_id', $branchId)
-                ->whereIn('product_id', $soldProductIds)
-                ->whereColumn('quantity', '<=', 'low_stock_alert')
-                ->get()
-                ->map(fn($s) => [
-                    'name'  => $s->product->name,
-                    'qty'   => $s->quantity,
-                    'alert' => $s->low_stock_alert,
-                ])
-                ->toArray();
-
-            if (! empty($lowItems)) {
-                $branch = \App\Models\Branch::find($branchId);
-                StockLow::dispatch($branch, $lowItems);
-            }
-
-            return response()->json([
-                'success'   => true,
-                'sale_id'   => $sale->id,
-                'reference' => $sale->reference,
-                'change'    => $change,
-                'message'   => 'Sale completed.',
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            BranchStock::where('branch_id', $branchId)
+                ->where('product_id', $si['product']->id)
+                ->decrement('quantity', $si['qty']);
         }
-    }
 
+        // ── Check low stock and dispatch event ────────────────────────────
+        $branch = $user->branch ?? \App\Models\Branch::find($branchId);
+        $lowStockItems = [];
+
+        foreach ($request->items as $item) {
+            $product = Product::find($item['id']);
+            if (!$product) continue;
+
+            $branchStock = BranchStock::where('branch_id', $branchId)
+                            ->where('product_id', $product->id)
+                            ->first();
+
+            if ($branchStock) {
+                $alertLevel = $branchStock->low_stock_alert ?? 5;
+                if ($branchStock->quantity <= $alertLevel) {
+                    $lowStockItems[] = [
+                        'name'  => $product->name,
+                        'qty'   => $branchStock->quantity,
+                        'alert' => $alertLevel,
+                    ];
+                }
+            }
+        }
+
+        if (!empty($lowStockItems)) {
+            event(new StockLow($branch, $lowStockItems));
+        }
+
+        // ── Create payments ───────────────────────────────────────────────
+        foreach ($request->payments as $pay) {
+            Payment::create([
+                'sale_id'     => $sale->id,
+                'customer_id' => $customerId,
+                'method'      => $pay['method'],
+                'amount'      => $pay['amount'],
+                'status'      => 'completed',
+            ]);
+        }
+
+        // ── Handle customer debt ──────────────────────────────────────────
+        $newBalance = null;
+        if ($customerId) {
+            $customer = Customer::find($customerId);
+            if ($balanceDue > 0) {
+                $customer->increment('outstanding_balance', $balanceDue);
+                $newBalance = $customer->outstanding_balance;
+            } elseif ($totalPaid > $total && $customer->outstanding_balance > 0) {
+                $excess = $totalPaid - $total;
+                $reduction = min($excess, $customer->outstanding_balance);
+                $customer->decrement('outstanding_balance', $reduction);
+                $newBalance = $customer->outstanding_balance;
+            } else {
+                $newBalance = $customer->outstanding_balance;
+            }
+        }
+
+        DB::commit();
+
+        // Dispatch SaleCompleted event after commit
+        event(new SaleCompleted($sale));
+
+        return response()->json([
+            'success'     => true,
+            'sale_id'     => $sale->id,
+            'reference'   => $sale->reference,
+            'change'      => $change,
+            'new_balance' => $newBalance,
+        ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Checkout error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage(),
+        ], 500);
+    }
+}
+    //    public function checkout(Request $request)
+    // {
+    //     $request->validate([
+    //         'items'             => 'required|array|min:1',
+    //         'items.*.id'        => 'required|exists:products,id',
+    //         'items.*.qty'       => 'required|numeric|min:0.01',
+    //         'items.*.price'     => 'required|numeric|min:0',
+    //         'payments'          => 'required|array|min:1',
+    //         'payments.*.method' => 'required|in:cash,mobile_money,card',
+    //         'payments.*.amount' => 'required|numeric|min:0',
+    //         'discount'          => 'nullable|numeric|min:0',
+    //         // 'tax'               => 'nullable|numeric|min:0',
+    //         'customer_id'       => 'nullable|exists:customers,id',
+    //     ]);
+
+    //     $user       = auth()->user();
+    //     $branchId   = $user->branch_id;
+    //      $shop       = $user->shop; 
+    //     $discount   = (float) ($request->discount ?? 0);
+    //     $tax        = (float) ($shop->defaultTaxRate ?? 0);
+    //     $customerId = $request->customer_id ?: null;
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $subtotal = 0;
+    //         $saleItems = [];
+    //         $productIds = [];
+
+    //         foreach ($request->items as $item) {
+    //             $product = Product::findOrFail($item['id']);
+    //             $qty = (float) $item['qty'];
+    //             $price = (float) $item['price'];
+    //             $itemDisc = (float) ($item['discount'] ?? 0);
+    //             $lineTotal = ($price * $qty) - $itemDisc;
+    //             $subtotal += $lineTotal;
+
+    //             $saleItems[] = compact('product', 'qty', 'price', 'itemDisc', 'lineTotal');
+    //             $productIds[] = $product->id;
+    //         }
+
+    //         $total = $subtotal - $discount + $tax;
+    //         $totalPaid = collect($request->payments)->sum('amount');
+    //         $change = max(0, $totalPaid - $total);
+    //         $balanceDue = max(0, $total - $totalPaid);
+    //         $paymentStatus = $balanceDue <= 0 ? 'paid' : ($totalPaid > 0 ? 'partial' : 'unpaid');
+
+    //         // Generate reference using your Sale model method
+    //         $reference = Sale::generateReference($branchId);
+
+    //         // Create sale
+    //         $sale = Sale::create([
+    //             'reference'      => $reference,
+    //             'branch_id'      => $branchId,
+    //             'user_id'        => $user->id,
+    //             'customer_id'    => $customerId,
+    //             'subtotal'       => $subtotal,
+    //             'discount'       => $discount,
+    //             'tax'            => $tax,
+    //             'total'          => $total,
+    //             'amount_paid'    => $totalPaid,
+    //             'change'         => $change,
+    //             'balance_due'    => $balanceDue,
+    //             'status'         => 'completed',
+    //             'payment_status' => $paymentStatus,
+    //             'notes'          => $request->notes ?? null,
+    //         ]);
+
+    //         // Create sale items and deduct stock
+    //         foreach ($saleItems as $si) {
+    //             SaleItem::create([
+    //                 'sale_id'      => $sale->id,
+    //                 'product_id'   => $si['product']->id,
+    //                 'product_name' => $si['product']->name,
+    //                 'quantity'     => $si['qty'],
+    //                 'price'        => $si['price'],
+    //                 'discount'     => $si['itemDisc'],
+    //                 'total'        => $si['lineTotal'],
+    //                 'cost'         => $si['product']->cost,
+    //             ]);
+
+    //             // Deduct stock
+    //             BranchStock::where('branch_id', $branchId)
+    //                 ->where('product_id', $si['product']->id)
+    //                 ->decrement('quantity', $si['qty']);
+    //         }
+
+    //         // Create payments
+    //         foreach ($request->payments as $pay) {
+    //             Payment::create([
+    //                 'sale_id'     => $sale->id,
+    //                 'customer_id' => $customerId,
+    //                 'method'      => $pay['method'],
+    //                 'amount'      => $pay['amount'],
+    //                 'status'      => 'completed',
+    //             ]);
+    //         }
+
+    //         // Handle customer debt (outstanding_balance)
+    //         $newBalance = null;
+    //         if ($customerId) {
+    //             $customer = Customer::find($customerId);
+    //             if ($balanceDue > 0) {
+    //                 $customer->increment('outstanding_balance', $balanceDue);
+    //                 $newBalance = $customer->outstanding_balance;
+    //             } elseif ($totalPaid > $total && $customer->outstanding_balance > 0) {
+    //                 $excess = $totalPaid - $total;
+    //                 $reduction = min($excess, $customer->outstanding_balance);
+    //                 $customer->decrement('outstanding_balance', $reduction);
+    //                 $newBalance = $customer->outstanding_balance;
+    //             } else {
+    //                 $newBalance = $customer->outstanding_balance;
+    //             }
+    //         }
+
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'success'     => true,
+    //             'sale_id'     => $sale->id,
+    //             'reference'   => $sale->reference,
+    //             'change'      => $change,
+    //             'new_balance' => $newBalance,
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         DB::rollBack();
+    //         Log::error('Checkout error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Server error: ' . $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
     public function receipt(Sale $sale)
     {
         $sale->load(['items.product', 'payments', 'customer', 'user', 'branch.shop']);

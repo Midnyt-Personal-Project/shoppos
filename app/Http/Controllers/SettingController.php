@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{Branch, ShopSetting};
+use App\Models\{Branch, ShopSetting, TaxRate};
 use App\Services\MailService;
 
 class SettingController extends Controller
@@ -13,7 +13,7 @@ class SettingController extends Controller
         $user     = auth()->user();
         $shopId   = $user->shop_id;
         $branches = Branch::where('shop_id', $shopId)->where('is_active', true)->get();
-
+        $taxRates = TaxRate::where('is_active', true)->orderBy('rate')->get();
         // Shop-level settings
         $shopSettings = [
             'shop_name'    => ShopSetting::get($shopId, 'shop_name',    $user->shop->name),
@@ -22,6 +22,7 @@ class SettingController extends Controller
             'shop_email'   => ShopSetting::get($shopId, 'shop_email',   $user->shop->email),
             'currency'     => ShopSetting::get($shopId, 'currency',     $user->shop->currency),
             'currency_symbol' => ShopSetting::get($shopId, 'currency_symbol', $user->shop->currency_symbol),
+             'default_tax_rate_id' => ShopSetting::get($shopId, 'default_tax_rate_id', $user->shop->default_tax_rate_id),
         ];
 
         // Notification toggles
@@ -31,7 +32,7 @@ class SettingController extends Controller
         $branchMailConfigs = ShopSetting::allBranchMailConfigs($shopId);
 
         return view('settings.index', compact(
-            'branches', 'shopSettings', 'notifications', 'branchMailConfigs'
+            'branches', 'shopSettings', 'notifications', 'branchMailConfigs', 'taxRates'
         ));
     }
 
@@ -48,6 +49,7 @@ class SettingController extends Controller
             'shop_email'      => 'nullable|email|max:255',
             'currency'        => 'required|string|max:10',
             'currency_symbol' => 'required|string|max:5',
+            'default_tax_rate_id' => 'nullable|exists:tax_rates,id',
         ]);
 
         foreach ($data as $key => $value) {
@@ -62,6 +64,7 @@ class SettingController extends Controller
             'email'           => $data['shop_email'],
             'currency'        => $data['currency'],
             'currency_symbol' => $data['currency_symbol'],
+            'default_tax_rate_id' => $data['default_tax_rate_id'] ?? null,
         ]);
 
         return redirect()->route('settings.index')->with('success', 'General settings saved.');

@@ -107,133 +107,148 @@ class MailService
     /**
      * Send a low-stock alert email.
      */
-    public static function sendLowStockAlert(Branch $branch, array $lowStockItems): array
-    {
-        Log::debug('MailService::sendLowStockAlert called', [
-            'branch' => $branch->name,
-            'items_count' => count($lowStockItems),
-        ]);
+  /**
+ * Send a low-stock alert email.
+ *
+ * @param Branch $branch
+ * @param array $lowStockItems
+ * @param string|null $toEmail  Optional recipient (if null, uses branch's own Gmail)
+ */
+public static function sendLowStockAlert(Branch $branch, array $lowStockItems, ?string $toEmail = null): array
+{
+    Log::debug('MailService::sendLowStockAlert called', [
+        'branch' => $branch->name,
+        'items_count' => count($lowStockItems),
+    ]);
 
-        $config = ShopSetting::notificationsFor($branch->shop_id);
-        if (! $config['notify_low_stock']) {
-            Log::info('MailService::sendLowStockAlert: Low stock notifications disabled');
-            return ['success' => false, 'message' => 'Low stock notifications are disabled.'];
-        }
-
-        $mailConfig = ShopSetting::branchMailConfig($branch->shop_id, $branch->id);
-        if (empty($mailConfig['gmail_address'])) {
-            Log::info('MailService::sendLowStockAlert: No email configured', ['branch' => $branch->name]);
-            return ['success' => false, 'message' => 'No email configured for this branch.'];
-        }
-
-        $rows = '';
-        foreach ($lowStockItems as $item) {
-            $status = $item['qty'] <= 0 ? 'Out of Stock' : 'Low Stock';
-            $color  = $item['qty'] <= 0 ? '#DC2626' : '#D97706';
-            $rows  .= "<tr>
-                <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>{$item['name']}</td>
-                <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:bold;color:{$color};'>{$item['qty']}</td>
-                <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;'>{$item['alert']}</td>
-                <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;color:{$color};font-weight:bold;'>{$status}</td>
-            </tr>";
-        }
-
-        $count = count($lowStockItems);
-        $html  = self::emailTemplate(
-            branch:  $branch,
-            title:   '⚠️ Low Stock Alert',
-            content: "
-            <p style='color:#475569;font-size:15px;margin:0 0 20px;'>
-                <strong>{$count} product(s)</strong> at <strong>{$branch->name}</strong> need restocking:
-            </p>
-            <table style='width:100%;border-collapse:collapse;font-size:14px;'>
-                <thead>
-                    <tr style='background:#f1f5f9;'>
-                        <th style='padding:10px 12px;text-align:left;color:#64748b;font-weight:600;'>Product</th>
-                        <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Current Stock</th>
-                        <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Alert Level</th>
-                        <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Status</th>
-                    </tr>
-                </thead>
-                <tbody>{$rows}</tbody>
-            </table>
-            <p style='color:#94a3b8;font-size:13px;margin:20px 0 0;'>Please restock these items as soon as possible.</p>
-            "
-        );
-
-        return self::sendFromBranch(
-            branch:   $branch,
-            toEmail:  $mailConfig['gmail_address'],
-            toName:   $branch->name,
-            subject:  "⚠️ Low Stock Alert — {$branch->name} ({$count} items)",
-            htmlBody: $html,
-        );
+    $config = ShopSetting::notificationsFor($branch->shop_id);
+    if (! $config['notify_low_stock']) {
+        Log::info('MailService::sendLowStockAlert: Low stock notifications disabled');
+        return ['success' => false, 'message' => 'Low stock notifications are disabled.'];
     }
 
-    /**
-     * Send a daily sales summary email.
-     */
-    public static function sendDailySummary(Branch $branch, array $data): array
-    {
-        Log::debug('MailService::sendDailySummary called', [
-            'branch' => $branch->name,
-        ]);
-
-        $config = ShopSetting::notificationsFor($branch->shop_id);
-        if (! $config['notify_daily_summary']) {
-            Log::info('MailService::sendDailySummary: Daily summary notifications disabled');
-            return ['success' => false, 'message' => 'Daily summary notifications are disabled.'];
-        }
-
-        $mailConfig = ShopSetting::branchMailConfig($branch->shop_id, $branch->id);
-        if (empty($mailConfig['gmail_address'])) {
-            Log::info('MailService::sendDailySummary: No email configured', ['branch' => $branch->name]);
-            return ['success' => false, 'message' => 'No email configured for this branch.'];
-        }
-
-        $currency = $branch->shop->currency_symbol;
-        $date     = now()->format('l, d F Y');
-
-        $html = self::emailTemplate(
-            branch:  $branch,
-            title:   "📊 Daily Sales Summary",
-            content: "
-            <p style='color:#475569;font-size:15px;margin:0 0 20px;'>{$date} — <strong>{$branch->name}</strong></p>
-            <table style='width:100%;border-collapse:collapse;font-size:15px;margin-bottom:20px;'>
-                <tr style='background:#f0fdf4;'>
-                    <td style='padding:14px 16px;border-radius:8px 0 0 8px;color:#15803d;font-weight:600;'>💰 Total Revenue</td>
-                    <td style='padding:14px 16px;border-radius:0 8px 8px 0;color:#15803d;font-weight:700;font-size:20px;text-align:right;'>{$currency}" . number_format($data['revenue'], 2) . "</td>
-                </tr>
-                <tr><td colspan='2' style='padding:4px;'></td></tr>
-                <tr style='background:#f8fafc;'>
-                    <td style='padding:12px 16px;color:#475569;'>🧾 Number of Sales</td>
-                    <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>" . ($data['count'] ?? 0) . " transactions</td>
-                </tr>
-                <tr style='background:#f8fafc;'>
-                    <td style='padding:12px 16px;color:#475569;'>📦 Cost of Goods</td>
-                    <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>{$currency}" . number_format($data['cogs'] ?? 0, 2) . "</td>
-                </tr>
-                <tr style='background:#f8fafc;'>
-                    <td style='padding:12px 16px;color:#475569;'>💸 Expenses</td>
-                    <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>{$currency}" . number_format($data['expenses'] ?? 0, 2) . "</td>
-                </tr>
-                <tr style='background:#faf5ff;'>
-                    <td style='padding:14px 16px;color:#7c3aed;font-weight:600;'>✨ Net Profit</td>
-                    <td style='padding:14px 16px;color:#7c3aed;font-weight:700;font-size:18px;text-align:right;'>{$currency}" . number_format($data['profit'] ?? 0, 2) . "</td>
-                </tr>
-            </table>
-            " . (isset($data['top_product']) ? "<p style='color:#64748b;font-size:13px;margin:0;'>🏆 Best seller today: <strong style='color:#0f172a;'>{$data['top_product']}</strong></p>" : "")
-        );
-
-        return self::sendFromBranch(
-            branch:   $branch,
-            toEmail:  $mailConfig['gmail_address'],
-            toName:   $branch->name,
-            subject:  "📊 Daily Summary — {$branch->name} | {$currency}" . number_format($data['revenue'], 2) . " revenue",
-            htmlBody: $html,
-        );
+    $mailConfig = ShopSetting::branchMailConfig($branch->shop_id, $branch->id);
+    if (empty($mailConfig['gmail_address'])) {
+        Log::info('MailService::sendLowStockAlert: No email configured', ['branch' => $branch->name]);
+        return ['success' => false, 'message' => 'No email configured for this branch.'];
     }
 
+    // Determine recipient
+    $recipient = $toEmail ?? $mailConfig['gmail_address'];
+    $recipientName = $toEmail ? $branch->shop->name : $branch->name;
+
+    $rows = '';
+    foreach ($lowStockItems as $item) {
+        $status = $item['qty'] <= 0 ? 'Out of Stock' : 'Low Stock';
+        $color  = $item['qty'] <= 0 ? '#DC2626' : '#D97706';
+        $rows  .= "<tr>
+            <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;'>{$item['name']}</td>
+            <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:bold;color:{$color};'>{$item['qty']}</td>
+            <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;'>{$item['alert']}</td>
+            <td style='padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;color:{$color};font-weight:bold;'>{$status}</td>
+        </tr>";
+    }
+
+    $count = count($lowStockItems);
+    $html  = self::emailTemplate(
+        branch:  $branch,
+        title:   '⚠️ Low Stock Alert',
+        content: "
+        <p style='color:#475569;font-size:15px;margin:0 0 20px;'>
+            <strong>{$count} product(s)</strong> at <strong>{$branch->name}</strong> need restocking:
+        </p>
+        <table style='width:100%;border-collapse:collapse;font-size:14px;'>
+            <thead>
+                <tr style='background:#f1f5f9;'>
+                    <th style='padding:10px 12px;text-align:left;color:#64748b;font-weight:600;'>Product</th>
+                    <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Current Stock</th>
+                    <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Alert Level</th>
+                    <th style='padding:10px 12px;text-align:center;color:#64748b;font-weight:600;'>Status</th>
+                </tr>
+            </thead>
+            <tbody>{$rows}</tbody>
+        </table>
+        <p style='color:#94a3b8;font-size:13px;margin:20px 0 0;'>Please restock these items as soon as possible.</p>
+        "
+    );
+
+    return self::sendFromBranch(
+        branch:   $branch,
+        toEmail:  $recipient,
+        toName:   $recipientName,
+        subject:  "⚠️ Low Stock Alert — {$branch->name} ({$count} items)",
+        htmlBody: $html,
+    );
+}
+
+/**
+ * Send a daily sales summary email.
+ *
+ * @param Branch $branch
+ * @param array $data
+ * @param string|null $toEmail  Optional recipient (if null, uses branch's own Gmail)
+ */
+public static function sendDailySummary(Branch $branch, array $data, ?string $toEmail = null): array
+{
+    Log::debug('MailService::sendDailySummary called', ['branch' => $branch->name]);
+
+    $config = ShopSetting::notificationsFor($branch->shop_id);
+    if (! $config['notify_daily_summary']) {
+        Log::info('MailService::sendDailySummary: Daily summary notifications disabled');
+        return ['success' => false, 'message' => 'Daily summary notifications are disabled.'];
+    }
+
+    $mailConfig = ShopSetting::branchMailConfig($branch->shop_id, $branch->id);
+    if (empty($mailConfig['gmail_address'])) {
+        Log::info('MailService::sendDailySummary: No email configured', ['branch' => $branch->name]);
+        return ['success' => false, 'message' => 'No email configured for this branch.'];
+    }
+
+    $recipient = $toEmail ?? $mailConfig['gmail_address'];
+    $recipientName = $toEmail ? $branch->shop->name : $branch->name;
+
+    $currency = $branch->shop->currency_symbol;
+    $date     = now()->format('l, d F Y');
+
+    $html = self::emailTemplate(
+        branch:  $branch,
+        title:   "📊 Daily Sales Summary",
+        content: "
+        <p style='color:#475569;font-size:15px;margin:0 0 20px;'>{$date} — <strong>{$branch->name}</strong></p>
+        <table style='width:100%;border-collapse:collapse;font-size:15px;margin-bottom:20px;'>
+            <tr style='background:#f0fdf4;'>
+                <td style='padding:14px 16px;border-radius:8px 0 0 8px;color:#15803d;font-weight:600;'>💰 Total Revenue</td>
+                <td style='padding:14px 16px;border-radius:0 8px 8px 0;color:#15803d;font-weight:700;font-size:20px;text-align:right;'>{$currency}" . number_format($data['revenue'], 2) . "</td>
+             </tr>
+             <tr><td colspan='2' style='padding:4px;'></td></tr>
+            <tr style='background:#f8fafc;'>
+                <td style='padding:12px 16px;color:#475569;'>🧾 Number of Sales</td>
+                <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>" . ($data['count'] ?? 0) . " transactions</td>
+             </tr>
+            <tr style='background:#f8fafc;'>
+                <td style='padding:12px 16px;color:#475569;'>📦 Cost of Goods</td>
+                <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>{$currency}" . number_format($data['cogs'] ?? 0, 2) . "</td>
+             </tr>
+            <tr style='background:#f8fafc;'>
+                <td style='padding:12px 16px;color:#475569;'>💸 Expenses</td>
+                <td style='padding:12px 16px;color:#0f172a;font-weight:600;text-align:right;'>{$currency}" . number_format($data['expenses'] ?? 0, 2) . "</td>
+             </tr>
+            <tr style='background:#faf5ff;'>
+                <td style='padding:14px 16px;color:#7c3aed;font-weight:600;'>✨ Net Profit</td>
+                <td style='padding:14px 16px;color:#7c3aed;font-weight:700;font-size:18px;text-align:right;'>{$currency}" . number_format($data['profit'] ?? 0, 2) . "</td>
+             </tr>
+         </table>
+        " . (isset($data['top_product']) ? "<p style='color:#64748b;font-size:13px;margin:0;'>🏆 Best seller today: <strong style='color:#0f172a;'>{$data['top_product']}</strong></p>" : "")
+    );
+
+    return self::sendFromBranch(
+        branch:   $branch,
+        toEmail:  $recipient,
+        toName:   $recipientName,
+        subject:  "📊 Daily Summary — {$branch->name} | {$currency}" . number_format($data['revenue'], 2) . " revenue",
+        htmlBody: $html,
+    );
+}
     // ── Private builders ──────────────────────────────────────────────────────
 
     private static function buildTestEmailHtml(Branch $branch): string

@@ -10,11 +10,17 @@ class Shop extends Model
     protected $fillable = [
         'name', 'slug', 'email', 'phone', 'address',
         'logo', 'currency', 'currency_symbol', 'is_active',
+         'default_tax_rate_id',
     ];
 
     public function branches(): HasMany
     {
         return $this->hasMany(Branch::class);
+    }
+  
+    public function defaultTaxRate()
+    {
+        return $this->belongsTo(TaxRate::class, 'default_tax_rate_id');
     }
 
     public function users(): HasMany
