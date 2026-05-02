@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Storage};
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
 use App\Models\{ActivityLog, Branch, BranchStock, Product, StockTransfer};
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ProductController extends Controller
 {
@@ -42,12 +46,67 @@ class ProductController extends Controller
     }
 
     public function create()
-    {
-        $user     = auth()->user();
-        $branches = Branch::where('shop_id', $user->shop_id)->where('is_active', true)->get();
+{
+    $user = auth()->user();
+    $shopId = $user->shop_id;
 
-        return view('products.create', compact('branches'));
-    }
+    // 1. Fetch existing categories from products of this shop
+    $existingCategories = Product::where('shop_id', $shopId)
+        ->distinct()
+        ->pluck('category')
+        ->filter()
+        ->values()
+        ->toArray();
+
+    // 2. Fetch existing units from products of this shop
+    $existingUnits = Product::where('shop_id', $shopId)
+        ->distinct()
+        ->pluck('unit')
+        ->filter()
+        ->values()
+        ->toArray();
+
+    // 3. Predefined pharmacy categories (the 40+ list you provided)
+    $predefinedCategories = [
+         'Analgesics & Pain Relief', 'Antibiotics', 'Antimalarials',
+        'Anthelmintics (Dewormers)', 'Antifungals', 'Antivirals', 'Gastrointestinal Preparations',
+        'Respiratory Preparations', 'Antihistamines & Allergy', 'Cardiovascular Drugs',
+        'Endocrine & Diabetes Drugs', 'Neurology & Psychiatric Drugs',
+        'Vitamins, Minerals & Supplements', 'Fluids & Electrolytes (Oral & IV)',
+        'Antiseptics & Disinfectants', 'Medical Supplies & Consumables (Non-Drug)',
+        'Diagnostic Tests & Equipment', 'Wound Care & Suturing', 'Mobility & Orthopedic Supports',
+        'Infection Control & Sterilization', 'Pharmacy Accessories (Pill cutters, containers)',
+        'Vaccine & Cold Chain Supplies', 'Specialty Injectables', 'Ophthalmology (Eye) Preparations',
+        'Otology (Ear) Preparations', 'Dental & Oral Care', 'Nasal Preparations',
+        'Reproductive Health & Contraceptives', 'Pediatric Specific Preparations',
+        'Nutritional & Enteral Feeds', 'Herbal & Traditional Remedies',
+        'Dermatology (Skin) Preparations (excluding antifungals)', 'Cough & Cold Preparations',
+        'Emergency & Resuscitation Drugs', 'Controlled Substances (Narcotics)',
+        'Topical Corticosteroids', 'Muscle Relaxants'
+    ];
+
+    // 4. Predefined pharmacy units
+    $predefinedUnits = [
+        'Tablet', 'Capsule', 'Strip', 'Pack', 'Bottle', 'Box', 'Vial', 'Inhaler', 'Sachet',
+        'Tube', 'Jar', 'Roll', 'Piece', 'Pair', 'Set', 'Kg', 'g', 'Litre', 'ml', 'Syringe',
+        'Pessary', 'Suppository', 'Drop', 'Spray', 'Cream', 'Ointment', 'Gel', 'Lotion',
+        'Powder', 'Patch', 'Test', 'Meter', 'Pair (gloves)', 'Mask', 'Dressing', 'Bandage',
+        'Tape', 'Catheter', 'Bag', 'Thermometer', 'Monitor', 'Lancet'
+    ];
+
+    // 5. Merge and deduplicate
+    $allCategories = array_unique(array_merge($existingCategories, $predefinedCategories));
+    $allUnits = array_unique(array_merge($existingUnits, $predefinedUnits));
+
+    // Sort alphabetically
+    sort($allCategories);
+    sort($allUnits);
+
+    // 6. Get branches for stock assignment
+    $branches = Branch::where('shop_id', $shopId)->where('is_active', true)->get();
+
+    return view('products.create', compact('branches', 'allCategories', 'allUnits'));
+}
 
     public function store(Request $request)
     {
@@ -337,6 +396,48 @@ class ProductController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Product removed from branch.']);
     }
+
+    public function downloadTemplate()
+{
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // Set headers
+    $headers = ['name', 'price', 'stock', 'barcode', 'sku', 'cost', 'category', 'description'];
+    $col = 'A';
+    foreach ($headers as $header) {
+        $sheet->setCellValue($col . '1', $header);
+        $sheet->getStyle($col . '1')->getFont()->setBold(true);
+        $col++;
+    }
+
+    // Add sample row
+    $sheet->setCellValue('A2', 'Paracetamol 500mg');
+    $sheet->setCellValue('B2', 5.99);
+    $sheet->setCellValue('C2', 100);
+    $sheet->setCellValue('D2', '1234567890123');
+    $sheet->setCellValue('E2', 'PAR-001');
+    $sheet->setCellValue('F2', 3.50);
+    $sheet->setCellValue('G2', 'Analgesics');
+    $sheet->setCellValue('H2', 'Effective pain relief for headaches and fever.');
+
+    // Auto-size columns
+    foreach (range('A', 'H') as $col) {
+        $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+
+    // Create writer and stream response
+    $writer = new Xlsx($spreadsheet);
+    $response = new StreamedResponse(
+        function () use ($writer) {
+            $writer->save('php://output');
+        }
+    );
+    $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    $response->headers->set('Content-Disposition', 'attachment; filename="product_import_template.xlsx"');
+
+    return $response;
+}
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

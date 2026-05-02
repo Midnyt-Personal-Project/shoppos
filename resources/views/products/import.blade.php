@@ -102,10 +102,20 @@
                 <div>
                     <label class="block text-slate-400 text-sm mb-2">Choose Excel/CSV File</label>
                     <input type="file" name="file" accept=".xlsx,.csv" class="input w-full" required>
-                    <p class="text-slate-500 text-xs mt-1">Max 2MB. Allowed: .xlsx, .csv</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <p class="text-slate-500 text-xs">Max 2MB. Allowed: .xlsx, .csv</p>
+                        <a href="{{ route('products.import.template') }}" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download Excel Template (.xlsx)
+                        </a>
+                    </div>
                 </div>
                 <button type="submit" class="btn-primary w-full py-3">Start Import</button>
             </form>
+
+            
 
             <div class="border-t border-slate-800 pt-5">
                 <h3 class="text-white font-semibold text-sm mb-3">📄 Required Excel Columns (header row)</h3>
@@ -142,5 +152,8 @@
             const el = document.getElementById('importDetails');
             el.classList.toggle('hidden');
         }
+
+     
+
     </script>
 @endsection

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
 use App\Models\{Expense, Sale, SaleItem};
 
 class ReportController extends Controller
@@ -94,7 +95,13 @@ class ReportController extends Controller
             ->join('products', 'products.id', '=', 'branch_stocks.product_id')
             ->selectRaw('SUM(branch_stocks.quantity * products.cost) as total')
             ->value('total') ?? 0;
+        $stockProfitValue = \App\Models\BranchStock::where('branch_id', $branchId)
+            ->join('products', 'products.id', '=', 'branch_stocks.product_id')
+            ->selectRaw('SUM(branch_stocks.quantity * (products.price - products.cost)) as total_profit')
+            ->value('total_profit') ?? 0;
 
-        return view('reports.stock', compact('stocks', 'stockValue'));
+       
+
+        return view('reports.stock', compact('stocks', 'stockValue', 'stockProfitValue'));
     }
 }

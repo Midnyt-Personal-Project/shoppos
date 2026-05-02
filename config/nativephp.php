@@ -348,15 +348,23 @@ return [
         'npm run release', // Run a command after the build
     ],
 
-    'processes' => [
-    'auto-sync' => [
-        'command' => 'php artisan sync:auto',
+//     'processes' => [
+//     'auto-sync' => [
+//         'command' => 'php artisan sync:auto',
+//         'cwd' => base_path(),
+//         'start' => true,
+//         'restart_on_exit' => true,
+//     ],
+// ],
+
+'processes' => [
+    'sync-api' => [
+        'command' => 'php artisan serve --host=0.0.0.0 --port=8000',
         'cwd' => base_path(),
         'start' => true,
         'restart_on_exit' => true,
     ],
 ],
-
 
 
 'updater' => [

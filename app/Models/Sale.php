@@ -3,13 +3,13 @@
 namespace App\Models;
 
 
-use App\Syncable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use App\{Syncable, SyncableFile};
 
 class Sale extends Model
 {
-use Syncable;    
+use SyncableFile;    
 protected $fillable = [
         'reference', 'branch_id', 'user_id', 'customer_id',
         'subtotal', 'discount', 'tax', 'total','tax_rate','tax_total',

@@ -6,13 +6,16 @@ use Illuminate\Support\ServiceProvider;
 use App\Events\ManualUpdateCheck;
 use Native\Desktop\Contracts\ProvidesPhpIni;
 use Native\Desktop\Events\AutoUpdater\{CheckingForUpdate, Error, UpdateAvailable, UpdateDownloaded, UpdateNotAvailable};
-use Native\Desktop\Facades\{AutoUpdater, Menu, Window};
+use Native\Desktop\Facades\{AutoUpdater, Menu, Process, Window};
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
     public function boot(): void
     {
-       
+    //    Process::start('php artisan sync:auto', [
+    //     'cwd' => base_path(),
+    //     'restartOnExit' => true,
+    // ]);  
     AutoUpdater::checkForUpdates();
     AutoUpdater::quitAndInstall();
     // ─── Register AutoUpdater Event Listeners FIRST ─────────────
@@ -103,6 +106,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
             Menu::link('#', 'Cut')->hotkey('CmdOrCtrl+X'),
             Menu::link('#', 'Copy')->hotkey('CmdOrCtrl+C'),
             Menu::link('#', 'Paste')->hotkey('CmdOrCtrl+V'),
+            Menu::view(),
             Menu::separator(),
             Menu::link('#', 'Select All')->hotkey('CmdOrCtrl+A'),
         )->label('Edit');

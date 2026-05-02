@@ -6,25 +6,29 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: #fff;
-            color: #000;
-            width: 300px;
-            margin: 20px auto;
-            font-weight: bold; /* All text bold */
-        }
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background: #fff;
+    color: #000;
+    width: 300px; /* This is the standard 80mm thermal width */
+    margin: 0 auto; /* Removed the 20px margin which might be pushing it off-center */
+    padding: 10px; /* Added padding so text doesn't touch the paper edge */
+    font-weight: bold;
+    overflow-x: hidden; /* Prevents horizontal scrollbars */
+}
         .divider {
             border-top: 1px solid #000;
             margin: 8px 0;
         }
         .center { text-align: center; }
         .row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            font-weight: bold;
-        }
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Keeps text aligned to the top if it wraps */
+    padding: 2px 0;
+    font-weight: bold;
+    gap: 10px; /* Adds a small gap so left and right text don't touch */
+}
         .bold { font-weight: bold; } /* explicitly keep bold */
         .large { font-size: 16px; font-weight: bold; }
         @media print {
@@ -40,6 +44,10 @@
         .center { color: #000; }
         /* For balance due, keep red but ensure it prints dark (red prints as dark gray on B&W) */
         .balance-due { color: #000; background: #fff; font-weight: bold; }
+        .row span:last-child {
+    text-align: right;
+    word-break: break-all; /* This ensures long strings like "SALE-2026..." break correctly */
+}
     </style>
 </head>
 <body>

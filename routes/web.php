@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\{Route, Schedule};
+
 use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
 use Native\Desktop\Facades\AutoUpdater;
 
@@ -65,6 +66,7 @@ Route::middleware(['auth', 'role'])->group(function () {
         Route::post('products/{product}/remove-branch', [ProductController::class, 'removeBranch'])->name('products.removeBranch');
         Route::get('products/import', [App\Http\Controllers\ProductImportController::class, 'showForm'])->name('products.import.form');
         Route::post('products/import', [ProductImportController::class, 'import'])->name('products.import.store');
+        Route::get('/products/import/template', [ProductController::class, 'downloadTemplate'])->name('products.import.template');
     });
 
     // ── Sales ─────────────────────────────────────────────────────────────────

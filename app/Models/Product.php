@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use App\Syncable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use App\{Syncable, SyncableFile};
 
 class Product extends Model
 
 
 {
-    use Syncable;
+    use SyncableFile;
     protected $fillable = [
         'shop_id', 'name', 'barcode', 'sku', 'category','branch','image',
         'description', 'price', 'cost', 'unit', 'image', 'is_active',

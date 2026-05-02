@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\{Customer, Payment, Sale};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
-use App\Models\{Customer, Payment, Sale};
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -29,23 +30,50 @@ class CustomerController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'name'  => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-        ]);
+{
+    
+    $request->validate([
+        'name'  => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('customers')->where(fn($q) => $q->where('shop_id', auth()->user()->shop_id))
+        ],
+        'phone' => [
+            'nullable',
+            'string',
+            'max:20',
+            Rule::unique('customers')->where(fn($q) => $q->where('shop_id', auth()->user()->shop_id))
+        ],
+        'email' => [
+            'nullable',
+            'email',
+            'max:255',
+            Rule::unique('customers')->where(fn($q) => $q->where('shop_id', auth()->user()->shop_id))
+        ],
+    ]);
 
-        $customer = Customer::create([
-            'shop_id'             => auth()->user()->shop_id,
-            'name'                => $request->name,
-            'phone'               => $request->phone,
-            'email'               => $request->email,
-            'outstanding_balance' => 0,
-        ]);
+    $customer = Customer::create([
+        'shop_id'             => auth()->user()->shop_id,
+        'name'                => $request->name,
+        'phone'               => $request->phone,
+        'email'               => $request->email,
+        'outstanding_balance' => 0,
+    ]);
 
-        return redirect()->route('customers.show', $customer)->with('success', 'Customer created successfully.');
+    // If the request expects JSON (e.g., from POS frontend), return JSON
+    if ($request->wantsJson()) {
+        return response()->json([
+            'id'    => $customer->id,
+            'name'  => $customer->name,
+            'phone' => $customer->phone,
+            'email' => $customer->email,
+        ]);
     }
+
+    // Otherwise, redirect (normal web form submission)
+    return redirect()->route('customers.show', $customer)->with('success', 'Customer created successfully.');
+}
 
     public function show(Customer $customer)
     {

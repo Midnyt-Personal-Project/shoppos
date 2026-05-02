@@ -10,11 +10,14 @@
         #qr-reader video { border-radius: 1rem; }
         #scannerOverlay { transition: opacity 0.2s ease; }
         #scannerOverlay.hidden { display: none; }
-        @media (max-width: 640px) {
-            main.p-6 { padding-left: 1rem; padding-right: 1rem; }
-            .grid { gap: 0.75rem; }
-            .card { padding: 0.75rem; }
+        @media (max-width: 768px) {
+            .cart-two-column { flex-direction: column !important; }
+            .cart-items-col, .cart-payment-col { width: 100% !important; }
         }
+        /* Custom scrollbar */
+        .cart-items-list::-webkit-scrollbar { width: 4px; }
+        .cart-items-list::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+        .cart-items-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
 @endpush
 
@@ -40,25 +43,23 @@
     </div>
 
     <!-- Category Filters -->
-    <div class="w-40 overflow-hidden">
+    <!-- Added max-w-2xl and mx-auto to keep it centered and contained -->
+<div class="overflow-hidden w-full max-w-2xl mx-auto"> 
     <div class="overflow-x-auto overflow-y-hidden no-scrollbar">
         <div class="flex gap-2 whitespace-nowrap px-2">
-            
             <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-brand-600 text-white font-semibold text-sm">
                 All
             </button>
-
             @foreach($categories as $cat)
             <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-surface-card text-slate-300 font-medium text-sm hover:bg-surface-card/80 transition-colors">
                 {{ $cat }}
             </button>
             @endforeach
-
         </div>
     </div>
 </div>
 
-    <!-- Product Grid (responsive columns) -->
+    <!-- Product Grid -->
     <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-4 pb-8 min-w-0"></div>
 
     <!-- Floating Cart Button -->
@@ -71,9 +72,10 @@
         </button>
     </div>
 
-    <!-- Cart Modal -->
-    <div id="cartModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-end md:items-center justify-center p-4">
-        <div class="card w-full max-w-md md:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+    <!-- Cart Modal – Two Column Layout -->
+    <div id="cartModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+        <div class="card w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
             <div class="flex justify-between items-center p-4 border-b border-surface-border">
                 <div class="flex items-center gap-2">
                     <button id="closeCartModal" class="p-2 rounded-lg hover:bg-surface-card transition-colors">
@@ -86,102 +88,107 @@
                 <span class="text-xs text-brand-400 bg-brand-600/20 px-3 py-1 rounded-full">#{{ rand(1000,9999) }}</span>
             </div>
 
-            <div id="cartItemsList" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <div class="text-center text-slate-400 py-8">Cart is empty</div>
-            </div>
-
-            <div class="border-t border-surface-border p-4 space-y-3">
-                <div class="space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-400">Subtotal</span>
-                        <span id="subtotal" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+            <!-- Two columns body -->
+            <div class="flex flex-1 overflow-hidden cart-two-column">
+                <!-- LEFT COLUMN: Cart Items -->
+                <div class="w-full  flex flex-col border-r border-surface-border">
+                    <div class="p-3 border-b border-surface-border bg-surface-card/30">
+                        <h3 class="text-white font-semibold text-sm">Order Items</h3>
                     </div>
-                    <div class="flex items-center gap-2 bg-surface-card rounded-lg px-3 py-2">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
-                        <input id="discountInput"
-                               class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-500"
-                               placeholder="Discount ({{ auth()->user()->shop->currency_symbol }})"
-                               type="number" min="0" step="0.01" value="0">
+                    <div id="cartItemsList" class="flex-1 overflow-y-auto p-3 space-y-3 cart-items-list">
+                        <div class="text-center text-slate-400 py-8">Cart is empty</div>
                     </div>
                 </div>
 
-                <div class="flex justify-between items-end pt-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-400">Tax</span>
-                        <span id="taxAmount" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                <!-- RIGHT COLUMN: Payment & Totals -->
+                <div class="w-1/2 flex flex-col p-4 space-y-4">
+                    <!-- Totals -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Discount</span>
+                            <span id="subtotal" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-surface-card rounded-lg px-3 py-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                            <input id="discountInput"
+                                   class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-500"
+                                   placeholder="Discount ({{ auth()->user()->shop->currency_symbol }})"
+                                   type="number" min="0" step="0.01" value="0">
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Tax</span>
+                            <span id="taxAmount" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                        </div>
+                        <div class="flex justify-between items-end pt-2 border-t border-surface-border">
+                            <span class="text-slate-400 uppercase text-xs font-bold">Grand Total</span>
+                            <h2 id="grandTotal" class="text-3xl font-bold text-white">{{ auth()->user()->shop->currency_symbol }}0.00</h2>
+                        </div>
                     </div>
+
+                    <!-- Customer selector -->
                     <div>
-                        <span class="text-xs text-slate-400 uppercase font-bold">Grand Total</span>
-                        <h2 id="grandTotal" class="text-3xl font-bold text-white">{{ auth()->user()->shop->currency_symbol }}0.00</h2>
+                        <select id="customerSelect" class="input w-full text-sm">
+                            <option value="">— Walk-in Customer —</option>
+                            @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}" data-balance="{{ $customer->outstanding_balance }}">
+                                {{ $customer->name }}
+                                @if($customer->outstanding_balance > 0)
+                                    (Owes {{ auth()->user()->shop->currency_symbol }}{{ number_format($customer->outstanding_balance, 2) }})
+                                @endif
+                            </option>
+                            @endforeach
+                        </select>
+                        <div id="customerBalanceDisplay" class="text-xs text-slate-400 mt-1 hidden">
+                            Outstanding debt: <span id="customerBalanceAmount" class="text-amber-400 font-semibold"></span>
+                        </div>
                     </div>
-                    
-                    <div class="text-right">
-                        <span class="text-xs text-slate-400">Stock Verified</span>
-                        <p id="itemCount" class="text-sm text-slate-400">0 Items</p>
+
+                    <!-- Amount paid -->
+                    <div>
+                        <label class="text-slate-400 text-xs mb-1 block">Amount Paid</label>
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">{{ auth()->user()->shop->currency_symbol }}</span>
+                            <input type="number" id="amountPaidInput" step="0.01" min="0" class="input pl-7 w-full" value="0.00">
+                        </div>
+                        <p id="amountPaidHint" class="text-xs text-slate-500 mt-1"></p>
                     </div>
-                </div>
 
-                <!-- Customer selector and balance -->
-                <div>
-                    <select id="customerSelect" class="input w-full text-sm">
-                        <option value="">— Walk-in Customer —</option>
-                        @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" data-balance="{{ $customer->outstanding_balance }}">
-                            {{ $customer->name }}
-                            @if($customer->outstanding_balance > 0)
-                                (Owes {{ auth()->user()->shop->currency_symbol }}{{ number_format($customer->outstanding_balance, 2) }})
-                            @endif
-                        </option>
-                        @endforeach
-                    </select>
-                    <div id="customerBalanceDisplay" class="text-xs text-slate-400 mt-1 hidden">
-                        Outstanding debt: <span id="customerBalanceAmount" class="text-amber-400 font-semibold"></span>
+                    <!-- Payment method buttons -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setPaymentMethod('cash')" id="pm-cash"
+                                class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-brand-600 text-white border-brand-600">Cash</button>
+                        <button onclick="setPaymentMethod('mobile_money')" id="pm-mobile_money"
+                                class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">MoMo</button>
+                        <button onclick="setPaymentMethod('card')" id="pm-card"
+                                class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">Card</button>
                     </div>
-                </div>
 
-                <!-- Amount paid input (for partial payment) -->
-                <div>
-                    <label class="text-slate-400 text-xs mb-1 block">Amount Paid</label>
-                    <div class="relative">
-                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 ">{{ auth()->user()->shop->currency_symbol }}</span>
-                        <input type="number" id="amountPaidInput" step="0.01" min="0" class="input pl-7 w-full " value="0.00">
+                    <!-- Action buttons -->
+                    <div class="flex flex-col gap-3 pt-2">
+                        <button id="collectPaymentBtn" class="btn-primary w-full py-3 justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                            </svg>
+                            COLLECT PAYMENT
+                        </button>
+                        <div class="flex gap-3">
+                            <button id="receiptButton" class="btn-secondary flex-1 justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"/>
+                                </svg>
+                                Receipt
+                            </button>
+                            <button onclick="document.getElementById('cartModal').classList.add('hidden');document.getElementById('customerModal').classList.remove('hidden')"
+                                    class="btn-secondary flex-1 justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                                </svg>
+                                Customer
+                            </button>
+                        </div>
                     </div>
-                    <p id="amountPaidHint" class="text-xs text-slate-500 mt-1"></p>
-                </div>
-
-                <!-- Payment method -->
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="setPaymentMethod('cash')" id="pm-cash"
-                            class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-brand-600 text-white border-brand-600">Cash</button>
-                    <button onclick="setPaymentMethod('mobile_money')" id="pm-mobile_money"
-                            class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">MoMo</button>
-                    <button onclick="setPaymentMethod('card')" id="pm-card"
-                            class="pay-method py-2 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">Card</button>
-                </div>
-
-                <button id="collectPaymentBtn" class="btn-primary w-full py-3 justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>
-                    </svg>
-                    COLLECT PAYMENT
-                </button>
-
-                <div class="flex gap-3">
-                    <button id="receiptButton" class="btn-secondary flex-1 justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"/>
-                        </svg>
-                        Receipt
-                    </button>
-                    <button onclick="document.getElementById('cartModal').classList.add('hidden');document.getElementById('customerModal').classList.remove('hidden')"
-                            class="btn-secondary flex-1 justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                        </svg>
-                        Customer
-                    </button>
                 </div>
             </div>
         </div>
@@ -218,9 +225,7 @@
                 <div><label class="text-slate-400 text-xs mb-1 block">Phone</label><input type="tel" name="phone" class="input"></div>
                 <div><label class="text-slate-400 text-xs mb-1 block">Email</label><input type="email" name="email" class="input"></div>
                 <div class="flex gap-3 mt-4">
-                    <button type="button"
-                            onclick="document.getElementById('customerModal').classList.add('hidden');document.getElementById('cartModal').classList.remove('hidden')"
-                            class="btn-secondary flex-1">Cancel</button>
+                    <button type="button" onclick="document.getElementById('customerModal').classList.add('hidden');document.getElementById('cartModal').classList.remove('hidden')" class="btn-secondary flex-1">Cancel</button>
                     <button type="submit" class="btn-primary flex-1">Save</button>
                 </div>
             </form>
@@ -268,44 +273,41 @@ function calculateTax(subtotal, discount) {
     return totalTax;
 }
 
-// ── Helper: product image (uses default.jpg from public folder)
-function imgSrc(product) {
-    return product.image ? '/storage/' + product.image : '/default.jpeg';
-}
+function imgSrc(product) { return product.image ? '/storage/' + product.image : '/default.jpeg'; }
+function imgError(el) { el.onerror = null; el.src = '/default.jpg'; }
 
-function imgError(el) {
-    el.onerror = null;
-    el.src = '/default.jpg';
-}
-
-// ── Cart state ─────────────────────────────────────────────────────────────
+// Cart state
 var cart          = [];
 var paymentMethod = 'cash';
 var lastSaleId    = null;
-var customersList = {}; // store customer balances
+var customersList = {};
 
-// Populate customersList from select options
 document.querySelectorAll('#customerSelect option').forEach(opt => {
-    if (opt.value) {
-        customersList[opt.value] = parseFloat(opt.dataset.balance || 0);
-    }
+    if (opt.value) customersList[opt.value] = parseFloat(opt.dataset.balance || 0);
 });
 
 function getProductById(id) {
     return products.find(p => p.id === id);
 }
 
+// Stock-aware add to cart
 function addToCart(productId) {
     var product = getProductById(productId);
     if (!product) {
         alert('Product not found. It may have been deactivated. Please refresh the page.');
         return;
     }
-    if (product.stock <= 0) {
+    var currentStock = product.stock;
+    if (currentStock <= 0) {
         alert('"' + product.name + '" is out of stock.');
         return;
     }
     var existing = cart.find(i => i.productId === productId);
+    var newQuantity = existing ? existing.quantity + 1 : 1;
+    if (newQuantity > currentStock) {
+        alert('Cannot add more than available stock. Only ' + currentStock + ' left.');
+        return;
+    }
     if (existing) existing.quantity++;
     else cart.push({ productId: productId, quantity: 1 });
     updateCartUI();
@@ -314,10 +316,18 @@ function addToCart(productId) {
 }
 
 function updateQuantity(productId, delta) {
+    var product = getProductById(productId);
+    if (!product) return;
     var item = cart.find(i => i.productId === productId);
-    if (item) {
-        item.quantity += delta;
-        if (item.quantity <= 0) cart = cart.filter(i => i.productId !== productId);
+    if (!item) return;
+    var newQty = item.quantity + delta;
+    if (newQty <= 0) {
+        cart = cart.filter(i => i.productId !== productId);
+    } else if (newQty > product.stock) {
+        alert('Cannot exceed available stock. Max ' + product.stock + ' allowed.');
+        return;
+    } else {
+        item.quantity = newQty;
     }
     updateCartUI();
     saveCart();
@@ -342,28 +352,18 @@ function calculateTotals() {
     });
     var tax = calculateTax(subtotal, discount);
     var grandTotal = Math.max(0, subtotal - discount + tax);
-    return {
-        subtotal:   subtotal,
-        discount:   discount,
-        tax:        tax,
-        grandTotal: grandTotal,
-        itemCount:  itemCount
-    };
+    return { subtotal, discount, tax, grandTotal, itemCount };
 }
 
 function updateCartUI() {
     var t = calculateTotals();
     document.getElementById('cartBadge').innerText  = t.itemCount;
-    document.getElementById('itemCount').innerText  = t.itemCount + ' Items';
     document.getElementById('subtotal').innerText   = CURRENCY + t.subtotal.toFixed(2);
-    document.getElementById('taxAmount').innerText = CURRENCY + t.tax.toFixed(2);
+    document.getElementById('taxAmount').innerText  = CURRENCY + t.tax.toFixed(2);
     document.getElementById('grandTotal').innerText = CURRENCY + t.grandTotal.toFixed(2);
 
-    // Update amount paid input default and hint
     var amountInput = document.getElementById('amountPaidInput');
-    if (amountInput && parseFloat(amountInput.value) === 0) {
-        amountInput.value = t.grandTotal.toFixed(2);
-    }
+    if (amountInput && parseFloat(amountInput.value) === 0) amountInput.value = t.grandTotal.toFixed(2);
     updateAmountPaidHint();
 
     if (cart.length === 0) {
@@ -376,17 +376,17 @@ function updateCartUI() {
         var p = getProductById(item.productId);
         if (!p) return;
         var lineTotal = p.price * item.quantity;
-        html += `<div class="bg-surface-card p-4 rounded-xl">
+        html += `<div class="bg-surface-card p-3 rounded-xl">
             <div class="flex gap-3">
-                <img class="w-16 h-16 rounded-lg object-cover bg-surface-DEFAULT flex-shrink-0" src="${imgSrc(p)}" alt="${escHtml(p.name)}" onerror="imgError(this)">
+                <img class="w-12 h-12 rounded-lg object-cover bg-surface-DEFAULT flex-shrink-0" src="${imgSrc(p)}" alt="${escHtml(p.name)}" onerror="imgError(this)">
                 <div class="flex-1 min-w-0">
                     <h3 class="font-semibold text-white text-sm">${escHtml(p.name)}</h3>
                     <p class="text-xs text-slate-500 font-mono">${p.barcode || '—'}</p>
-                    <div class="flex items-center justify-between mt-2">
+                    <div class="flex items-center justify-between mt-1">
                         <div class="flex items-center gap-2">
-                            <button onclick="updateQuantity(${p.id},-1)" class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">−</button>
-                            <span class="text-white font-bold w-6 text-center">${item.quantity}</span>
-                            <button onclick="updateQuantity(${p.id},1)" class="w-7 h-7 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">+</button>
+                            <button onclick="updateQuantity(${p.id},-1)" class="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">−</button>
+                            <span class="text-white font-bold w-6 text-center text-sm">${item.quantity}</span>
+                            <button onclick="updateQuantity(${p.id},1)" class="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center">+</button>
                         </div>
                         <div class="text-right">
                             <p class="text-brand-400 text-xs">${CURRENCY}${p.price.toFixed(2)} ea</p>
@@ -395,7 +395,7 @@ function updateCartUI() {
                     </div>
                 </div>
             </div>
-            <div class="flex justify-end mt-2">
+            <div class="flex justify-end mt-1">
                 <button onclick="removeItem(${p.id})" class="text-red-400 hover:text-red-300 text-xs">✕ Remove</button>
             </div>
         </div>`;
@@ -410,31 +410,24 @@ function loadCart() {
     if (saved) {
         try {
             cart = JSON.parse(saved);
-            // 🔍 Remove items with missing products
-            var originalLength = cart.length;
+            var modified = false;
             cart = cart.filter(item => {
                 var product = getProductById(item.productId);
-                if (!product) {
-                    console.warn(`Removing invalid cart item: product ${item.productId} not found`);
-                    return false;
+                if (!product) return false;
+                if (item.quantity > product.stock) {
+                    console.warn(`Reducing quantity for ${product.name} from ${item.quantity} to ${product.stock}`);
+                    item.quantity = product.stock;
+                    if (item.quantity === 0) return false;
+                    modified = true;
                 }
                 return true;
             });
-            if (cart.length !== originalLength) {
-                saveCart();
-                console.log(`Removed ${originalLength - cart.length} invalid item(s) from cart`);
-                if (originalLength - cart.length > 0) {
-                    setTimeout(() => {
-                        alert(`Removed ${originalLength - cart.length} product(s) that are no longer available.`);
-                    }, 100);
-                }
-            }
+            if (modified) saveCart();
             updateCartUI();
         } catch(e) { console.error(e); }
     }
 }
 
-// ── Customer balance display and amount paid logic ────────────────────────
 function updateCustomerBalance() {
     var select = document.getElementById('customerSelect');
     var selectedId = select.value;
@@ -461,16 +454,10 @@ function updateAmountPaidHint() {
     } else {
         amountInput.readOnly = false;
         var balance = customersList[customerId] || 0;
-        if (balance > 0) {
-            hint.innerText = `Customer owes ${CURRENCY}${balance.toFixed(2)}. You can pay more to reduce debt.`;
-        } else {
-            hint.innerText = 'You can pay less (remaining becomes debt) or full amount.';
-        }
-        // Set default to grand total if amount is zero
+        if (balance > 0) hint.innerText = `Customer owes ${CURRENCY}${balance.toFixed(2)}. You can pay more to reduce debt.`;
+        else hint.innerText = 'You can pay less (remaining becomes debt) or full amount.';
         var currentVal = parseFloat(amountInput.value);
-        if (isNaN(currentVal) || currentVal === 0) {
-            amountInput.value = grandTotal.toFixed(2);
-        }
+        if (isNaN(currentVal) || currentVal === 0) amountInput.value = grandTotal.toFixed(2);
     }
 }
 
@@ -482,15 +469,15 @@ document.getElementById('amountPaidInput').addEventListener('input', function() 
     else if (val < 0) this.value = '0';
 });
 
-// ── Product grid ───────────────────────────────────────────────────────────
+// Product grid rendering
 var activeCategory = 'all';
-var searchTerm     = '';
+var searchTerm = '';
 
 function renderProducts(filter, category) {
-    filter   = filter   || '';
+    filter = filter || '';
     category = category || 'all';
     var list = products.filter(p => {
-        var matchSearch   = !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || (p.barcode && p.barcode.includes(filter));
+        var matchSearch = !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || (p.barcode && p.barcode.includes(filter));
         var matchCategory = category === 'all' || p.category === category;
         return matchSearch && matchCategory;
     });
@@ -501,11 +488,8 @@ function renderProducts(filter, category) {
     }
     grid.innerHTML = list.map(p => {
         var badge = '';
-        if (p.stock <= 0) {
-            badge = '<div class="absolute inset-0 bg-black/60 flex items-center justify-center"><span class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded">Out of Stock</span></div>';
-        } else if (p.stock <= 5) {
-            badge = `<div class="absolute bottom-1 right-1 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Low: ${p.stock}</div>`;
-        }
+        if (p.stock <= 0) badge = '<div class="absolute inset-0 bg-black/60 flex items-center justify-center"><span class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded">Out of Stock</span></div>';
+        else if (p.stock <= 5) badge = `<div class="absolute bottom-1 right-1 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Low: ${p.stock}</div>`;
         var disabled = p.stock <= 0 ? ' opacity-50 cursor-not-allowed' : '';
         return `<div class="card p-3 flex flex-col cursor-pointer hover:border-brand-600/50 transition-colors border border-transparent min-w-0" onclick="addToCart(${p.id})">
             <div class="aspect-square overflow-hidden rounded-lg mb-3 bg-slate-800 relative">
@@ -531,10 +515,9 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('.filter-btn').forEach(b => {
             var active = b === btn;
-            b.className = 'filter-btn flex-shrink-0 px-5 py-2 rounded-full font-medium text-sm transition-colors '
-                + (active ? 'bg-brand-600 text-white font-semibold' : 'bg-surface-card text-slate-300 hover:bg-surface-card/80');
+            b.className = 'filter-btn flex-shrink-0 px-5 py-2 rounded-full font-medium text-sm transition-colors ' + (active ? 'bg-brand-600 text-white font-semibold' : 'bg-surface-card text-slate-300 hover:bg-surface-card/80');
         });
-        activeCategory = btn.dataset.category;
+        activeCategory = btn.innerText === 'All' ? 'all' : btn.innerText;
         renderProducts(searchTerm, activeCategory);
     });
 });
@@ -545,51 +528,33 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 document.getElementById('discountInput').addEventListener('input', updateCartUI);
 
-// ── Payment method ─────────────────────────────────────────────────────────
 function setPaymentMethod(method) {
     paymentMethod = method;
     ['cash', 'mobile_money', 'card'].forEach(m => {
         var el = document.getElementById('pm-' + m);
         if (el) {
-            el.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all ' +
-                (m === method ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-800 text-slate-400 border-slate-700');
+            el.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all ' + (m === method ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-800 text-slate-400 border-slate-700');
         }
     });
 }
 
-// ── Checkout (supports partial payment and debt reduction) ─────────────────
+// Checkout
 document.getElementById('collectPaymentBtn').addEventListener('click', async function() {
-    if (cart.length === 0) {
-        alert('Cart is empty. Add items first.');
-        return;
-    }
-
-    var btn = document.getElementById('collectPaymentBtn');
+    if (cart.length === 0) { alert('Cart is empty. Add items first.'); return; }
+    var btn = this;
     btn.disabled = true;
     btn.innerHTML = 'Processing…';
 
-    // 🔍 Validate all cart items exist in products array
     var validItems = [];
     var missingIds = [];
     for (var i = 0; i < cart.length; i++) {
         var p = getProductById(cart[i].productId);
-        if (!p) {
-            missingIds.push(cart[i].productId);
-        } else {
-            validItems.push({
-                id: cart[i].productId,
-                qty: cart[i].quantity,
-                price: p.price,
-                discount: 0
-            });
-        }
+        if (!p) missingIds.push(cart[i].productId);
+        else validItems.push({ id: cart[i].productId, qty: cart[i].quantity, price: p.price, discount: 0 });
     }
-
     if (missingIds.length > 0) {
-        alert(`The following product IDs are missing from the product list: ${missingIds.join(', ')}\nPlease refresh the page and try again.`);
-        btn.disabled = false;
-        btn.innerHTML = 'COLLECT PAYMENT';
-        return;
+        alert(`Missing products: ${missingIds.join(', ')}. Refresh page.`);
+        btn.disabled = false; btn.innerHTML = 'COLLECT PAYMENT'; return;
     }
 
     var t = calculateTotals();
@@ -599,49 +564,29 @@ document.getElementById('collectPaymentBtn').addEventListener('click', async fun
 
     if (customerId === null && amountPaid < grandTotal - 0.01) {
         alert('Walk-in customers must pay the full amount.');
-        btn.disabled = false;
-        btn.innerHTML = 'COLLECT PAYMENT';
-        return;
+        btn.disabled = false; btn.innerHTML = 'COLLECT PAYMENT'; return;
     }
     if (isNaN(amountPaid)) amountPaid = 0;
-    if (amountPaid < 0) amountPaid = 0;
 
     var payload = {
         items: validItems,
-        payments:    [{ method: paymentMethod, amount: amountPaid }],
-        discount:    t.discount,
-        tax:         0,
+        payments: [{ method: paymentMethod, amount: amountPaid }],
+        discount: t.discount,
+        tax: 0,
         customer_id: customerId,
     };
 
-    console.log('📤 Sending checkout request:', payload);
-
     try {
-        var res = await fetch('/pos/checkout', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body:    JSON.stringify(payload),
-        });
+        var res = await fetch('/pos/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF }, body: JSON.stringify(payload) });
         var data = await res.json();
-        console.log('📥 Response:', data);
-
-        if (!res.ok || !data.success) {
-            alert('Checkout failed: ' + (data.message || 'Server error'));
-            btn.disabled = false;
-            btn.innerHTML = 'COLLECT PAYMENT';
-            return;
-        }
-
-        // Success handling
+        if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
         lastSaleId = data.sale_id;
         document.getElementById('completedRef').innerText = data.reference;
         var changeEl = document.getElementById('changeDisplay');
         if (data.change > 0) {
             changeEl.classList.remove('hidden');
             document.getElementById('changeAmount').innerText = CURRENCY + parseFloat(data.change).toFixed(2);
-        } else {
-            changeEl.classList.add('hidden');
-        }
+        } else changeEl.classList.add('hidden');
         document.getElementById('cartModal').classList.add('hidden');
         document.getElementById('saleCompleteModal').classList.remove('hidden');
         cart = [];
@@ -653,18 +598,15 @@ document.getElementById('collectPaymentBtn').addEventListener('click', async fun
             updateCustomerBalance();
         }
     } catch(e) {
-        console.error('❌ Error:', e);
-        alert('Network error: ' + e.message);
+        console.error(e);
+        alert('Checkout failed: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = 'COLLECT PAYMENT';
     }
 });
 
-document.getElementById('printReceiptBtn').addEventListener('click', function() {
-    if (lastSaleId) window.open('/pos/receipt/' + lastSaleId, '_blank');
-});
-
+document.getElementById('printReceiptBtn').addEventListener('click', () => { if (lastSaleId) window.open('/pos/receipt/' + lastSaleId, '_blank'); });
 function newSale() {
     document.getElementById('saleCompleteModal').classList.add('hidden');
     document.getElementById('customerSelect').value = '';
@@ -674,13 +616,9 @@ function newSale() {
     document.getElementById('searchInput').focus();
     updateCustomerBalance();
 }
+document.getElementById('receiptButton').addEventListener('click', () => { if (lastSaleId) window.open('/pos/receipt/' + lastSaleId, '_blank'); else alert('Complete the sale first.'); });
 
-document.getElementById('receiptButton').addEventListener('click', function() {
-    if (lastSaleId) window.open('/pos/receipt/' + lastSaleId, '_blank');
-    else alert('Complete the sale first to print a receipt.');
-});
-
-// ── Add customer ───────────────────────────────────────────────────────────
+// Add customer
 document.getElementById('addCustomerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     var data = {};
@@ -688,26 +626,50 @@ document.getElementById('addCustomerForm').addEventListener('submit', async func
     try {
         var res = await fetch('/customers', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
         });
-        var customer = await res.json();
+
+        if (!res.ok) {
+            // Handle validation errors (422 Unprocessable Entity)
+            const errorData = await res.json();
+            if (errorData.errors) {
+                // Show the first validation error message
+                const firstError = Object.values(errorData.errors).flat()[0];
+                alert(firstError);
+            } else if (errorData.message) {
+                alert(errorData.message);
+            } else {
+                alert('Failed to save customer.');
+            }
+            return;
+        }
+
+        const customer = await res.json();
         if (customer.id) {
             var sel = document.getElementById('customerSelect');
-            var option = new Option(customer.name, customer.id);
-            option.dataset.balance = '0';
-            sel.appendChild(option);
+            var opt = new Option(customer.name, customer.id);
+            opt.dataset.balance = '0';
+            sel.appendChild(opt);
             customersList[customer.id] = 0;
             sel.value = customer.id;
             updateCustomerBalance();
             e.target.reset();
             document.getElementById('customerModal').classList.add('hidden');
             document.getElementById('cartModal').classList.remove('hidden');
-        } else { alert('Failed to save customer.'); }
-    } catch(e) { alert('Error saving customer.'); }
+        } else {
+            alert('Failed to save customer.');
+        }
+    } catch(e) {
+        alert('Network error: ' + e.message);
+    }
 });
 
-// ── USB barcode scanner ────────────────────────────────────────────────────
+// Barcode scanner (USB)
 var _buf = '', _timer = null;
 document.addEventListener('keydown', function(e) {
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
@@ -723,41 +685,24 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ── Camera scanner ─────────────────────────────────────────────────────────
+// Camera scanner
 var html5QrCode = null;
 async function startScanner() {
-    try {
-        var stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(t => t.stop());
-    } catch(err) {
-        alert(err.name === 'NotAllowedError' ? 'Camera permission denied.' : 'Camera not available: ' + err.message);
-        return;
-    }
+    try { await navigator.mediaDevices.getUserMedia({ video: true }); } catch(err) { alert(err.name === 'NotAllowedError' ? 'Camera permission denied.' : 'Camera not available'); return; }
     document.getElementById('scannerOverlay').classList.remove('hidden');
     document.getElementById('manualBarcode').value = '';
     if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader');
-    html5QrCode.start(
-        { facingMode: 'environment' },
-        { fps: 15, qrbox: { width: 280, height: 280 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
-        function(decodedText) {
-            var p = products.find(x => x.barcode === decodedText);
-            if (p) addToCart(p.id);
-            else alert('Barcode ' + decodedText + ' not found');
-            stopScanner();
-        },
-        function() {}
-    ).catch(err => { alert('Could not start scanner: ' + (err.message || err)); stopScanner(); });
+    html5QrCode.start({ facingMode: 'environment' }, { fps: 15, qrbox: { width: 280, height: 280 } }, function(decodedText) {
+        var p = products.find(x => x.barcode === decodedText);
+        if (p) addToCart(p.id);
+        else alert('Barcode ' + decodedText + ' not found');
+        stopScanner();
+    }, function() {}).catch(err => { alert('Could not start scanner: ' + err.message); stopScanner(); });
 }
-
 function stopScanner() {
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => document.getElementById('scannerOverlay').classList.add('hidden'))
-            .catch(() => document.getElementById('scannerOverlay').classList.add('hidden'));
-    } else {
-        document.getElementById('scannerOverlay').classList.add('hidden');
-    }
+    if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().then(() => document.getElementById('scannerOverlay').classList.add('hidden')).catch(() => document.getElementById('scannerOverlay').classList.add('hidden'));
+    else document.getElementById('scannerOverlay').classList.add('hidden');
 }
-
 function handleManualBarcode() {
     var barcode = document.getElementById('manualBarcode').value.trim();
     if (!barcode) return;
@@ -766,41 +711,22 @@ function handleManualBarcode() {
     else alert('Product with barcode "' + barcode + '" not found.');
     document.getElementById('manualBarcode').value = '';
 }
-
 document.getElementById('scanButton').addEventListener('click', startScanner);
 document.getElementById('closeScanner').addEventListener('click', stopScanner);
 document.getElementById('submitBarcode').addEventListener('click', handleManualBarcode);
 document.getElementById('manualBarcode').addEventListener('keypress', e => { if (e.key === 'Enter') handleManualBarcode(); });
 
-// ── Cart modal open/close ──────────────────────────────────────────────────
-document.getElementById('cartButton').addEventListener('click', () => {
-    updateCustomerBalance();
-    document.getElementById('cartModal').classList.remove('hidden');
-});
+// Cart modal open/close
+document.getElementById('cartButton').addEventListener('click', () => { updateCustomerBalance(); document.getElementById('cartModal').classList.remove('hidden'); });
 document.getElementById('closeCartModal').addEventListener('click', () => document.getElementById('cartModal').classList.add('hidden'));
 document.getElementById('cartModal').addEventListener('click', e => { if (e.target === document.getElementById('cartModal')) document.getElementById('cartModal').classList.add('hidden'); });
 
-// ── Beep ───────────────────────────────────────────────────────────────────
-function playBeep() {
-    try {
-        var ctx = new AudioContext();
-        var osc = ctx.createOscillator();
-        var g   = ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination);
-        osc.frequency.value = 1200;
-        g.gain.setValueAtTime(0.1, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-        osc.start(); osc.stop(ctx.currentTime + 0.08);
-    } catch(e) {}
-}
+function playBeep() { try { var ctx = new AudioContext(); var osc = ctx.createOscillator(); var g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.frequency.value = 1200; g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08); osc.start(); osc.stop(ctx.currentTime + 0.08); } catch(e) {} }
+function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
-function escHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-// ── Init ───────────────────────────────────────────────────────────────────
+// Init
 renderProducts();
-loadCart();   // ← automatically removes missing products
+loadCart();
 document.getElementById('searchInput').focus();
 updateCustomerBalance();
 </script>
