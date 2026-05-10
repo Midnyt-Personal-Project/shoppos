@@ -12,6 +12,7 @@
             Record Repayment
         </button>
         @endif
+        <a href="{{ route('customers.edit', $customer) }}" class="btn-secondary text-xs">✎ Edit Customer</a>
     </div>
 
     <div class="grid md:grid-cols-3 gap-4">

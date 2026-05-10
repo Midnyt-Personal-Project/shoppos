@@ -73,6 +73,7 @@ Route::middleware(['auth', 'role'])->group(function () {
     Route::prefix('sales')->name('sales.')->group(function () {
         Route::get('/',               [SaleController::class, 'index'])->name('index');
         Route::get('/{sale}',         [SaleController::class, 'show'])->name('show');
+        Route::get('/{sale}/receipt-data', [SaleController::class, 'receiptData'])->name('receipt-data');
         Route::get('/{sale}/refund',  [SaleController::class, 'refundView'])->name('refund')
             ->middleware('role:owner,admin,manager');
     });
@@ -109,6 +110,7 @@ Route::middleware(['auth', 'role'])->group(function () {
         Route::post('/',                 [CustomerController::class, 'store'])->name('store');
         Route::get('/{customer}',        [CustomerController::class, 'show'])->name('show');
         Route::put('/{customer}',        [CustomerController::class, 'update'])->name('update');
+        Route::get('/{customer}/edit', [CustomerController::class, 'edit'])->name('edit');
         Route::post('/{customer}/repay', [CustomerController::class, 'repayDebt'])->name('repay');
     });
 

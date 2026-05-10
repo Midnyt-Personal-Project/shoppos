@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Customer, Payment, Sale};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
 use Illuminate\Validation\Rule;
+
+use App\Models\{Customer, Payment, Sale};
 
 class CustomerController extends Controller
 {
@@ -163,6 +164,36 @@ class CustomerController extends Controller
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
+}
+
+    /**
+ * Show the form for editing the specified customer.
+ */
+public function edit(Customer $customer)
+{
+    $this->authorizeOwner($customer);
+    return view('customers.edit', compact('customer'));
+}
+
+/**
+ * Update the specified customer in storage.
+ */
+public function update(Request $request, Customer $customer)
+{
+    $this->authorizeOwner($customer);
+
+    $data = $request->validate([
+        'name'         => 'required|string|max:255',
+        'phone'        => 'nullable|string|max:20',
+        'email'        => 'nullable|email|max:255',
+        'address'      => 'nullable|string|max:500',
+        'credit_limit' => 'nullable|numeric|min:0',
+    ]);
+
+    $customer->update($data);
+
+    return redirect()->route('customers.show', $customer)
+                     ->with('success', 'Customer updated successfully.');
 }
 
     private function authorizeOwner(Customer $customer)

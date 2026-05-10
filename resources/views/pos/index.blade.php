@@ -255,24 +255,26 @@
 
         <!-- Sale Complete Modal -->
         <div id="saleCompleteModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
-            <div class="card w-96 p-8 text-center">
-                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </div>
-                <h2 class="text-white text-xl font-bold mb-1">Sale Complete!</h2>
-                <p class="text-slate-400 text-sm mb-1" id="completedRef"></p>
-                <div id="changeDisplay" class="bg-green-500/10 rounded-xl p-4 my-4 hidden">
-                    <p class="text-slate-400 text-xs">Change to give</p>
-                    <p class="text-green-400 text-3xl font-bold" id="changeAmount"></p>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mt-6">
-                    <button id="printReceiptBtn" class="btn-secondary justify-center py-2.5">🖨️ Print Receipt</button>
-                    <button onclick="newSale()" class="btn-primary justify-center py-2.5">New Sale →</button>
-                </div>
-            </div>
+    <div class="card w-96 p-8 text-center">
+        <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
         </div>
+        <h2 class="text-white text-xl font-bold mb-1">Sale Complete!</h2>
+        <p class="text-slate-400 text-sm mb-1" id="completedRef"></p>
+        <div id="changeDisplay" class="bg-green-500/10 rounded-xl p-4 my-4 hidden">
+            <p class="text-slate-400 text-xs">Change to give</p>
+            <p class="text-green-400 text-3xl font-bold" id="changeAmount"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-6">
+            <button id="printReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">🖨️ Print</button>
+            <button id="whatsappReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">📱 WhatsApp</button>
+            <button id="emailReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">✉️ Email</button>
+            <button onclick="newSale()" class="btn-primary justify-center py-2.5 text-sm">New Sale →</button>
+        </div>
+    </div>
+</div>
 
         <!-- Add Customer Modal -->
         <div id="customerModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
@@ -352,6 +354,95 @@
             // Default image for regular products
             return '/default.jpeg';
         }
+
+        // Helper: fetch sale data and generate plain text receipt
+async function getSaleTextReceipt(saleId) {
+    const response = await fetch(`/sales/${saleId}/receipt-data`);
+    const sale = await response.json();
+
+    const shopName = sale.branch.shop.name;
+    const branchName = sale.branch.name;
+    const branchPhone = sale.branch.phone || '';
+    const currency = sale.branch.shop.currency_symbol;
+    const date = new Date(sale.created_at).toLocaleString();
+    const cashier = sale.user.name;
+    const customer = sale.customer ? sale.customer.name : 'Walk-in Customer';
+    const reference = sale.reference;
+
+    let itemsText = '';
+    if (sale.items && sale.items.forEach) {
+        sale.items.forEach(item => {
+            const lineTotal = (item.price * item.quantity) - (item.discount || 0);
+            itemsText += `${item.product_name} x${item.quantity} = ${currency}${lineTotal.toFixed(2)}\n`;
+            if (item.discount && item.discount > 0) {
+                itemsText += `  Discount: -${currency}${item.discount.toFixed(2)}\n`;
+            }
+        });
+    } else {
+        itemsText = 'No items\n';
+    }
+
+    let paymentsText = '';
+    if (sale.payments && sale.payments.forEach) {
+        sale.payments.forEach(payment => {
+            paymentsText += `${payment.method}: ${currency}${payment.amount.toFixed(2)}\n`;
+        });
+    } else {
+        paymentsText = 'No payments\n';
+    }
+
+    const subtotal = parseFloat(sale.subtotal) || 0;
+    const discount = parseFloat(sale.discount) || 0;
+    const taxTotal = parseFloat(sale.tax_total) || 0;
+    const total = parseFloat(sale.total) || 0;
+
+    let taxText = '';
+    if (taxTotal > 0) {
+        taxText = `Tax: ${currency}${taxTotal.toFixed(2)}\n`;
+    }
+
+    let receiptText = `
+*${shopName}*
+${branchName}
+${branchPhone}
+|--------------------------------
+|Receipt: ${reference}
+|Date: ${date}
+|Cashier: ${cashier}
+|Customer: ${customer}
+--------------------------------
+|ITEMS:
+|${itemsText}
+|--------------------------------
+|Subtotal: ${currency}${subtotal.toFixed(2)}
+|Discount: -${currency}${discount.toFixed(2)}
+|${taxText}Total: ${currency}${total.toFixed(2)}
+|--------------------------------
+|PAYMENTS:
+|${paymentsText}
+|-------------------------------
+|Thank you! Come again.
+--------------------------------
+    `;
+    return receiptText;
+}
+
+// WhatsApp button
+document.getElementById('whatsappReceiptBtn').addEventListener('click', async () => {
+    if (!lastSaleId) return;
+    const text = await getSaleTextReceipt(lastSaleId);
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+});
+
+// Email button
+document.getElementById('emailReceiptBtn').addEventListener('click', async () => {
+    if (!lastSaleId) return;
+    const text = await getSaleTextReceipt(lastSaleId);
+    const subject = encodeURIComponent(`Receipt for Sale ${lastSaleId}`);
+    const body = encodeURIComponent(text);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+});
 
         function imgError(el) {
             el.onerror = null;
@@ -1016,5 +1107,7 @@
         loadCart();
         document.getElementById('searchInput').focus();
         updateCustomerBalance();
+
+        
     </script>
 @endpush

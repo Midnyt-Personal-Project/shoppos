@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
 use Illuminate\Http\Request;
+
+use App\Models\Sale;
 
 class SaleController extends Controller
 {
@@ -47,6 +48,12 @@ class SaleController extends Controller
         $sale->load(['items.product']);
         return view('sales.refund', compact('sale'));
     }
+
+    public function receiptData(Sale $sale)
+{
+    $sale->load(['items.product', 'payments', 'customer', 'user', 'branch.shop']);
+    return response()->json($sale);
+}
 
     private function authorizeSale(Sale $sale): void
     {
