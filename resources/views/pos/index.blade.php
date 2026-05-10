@@ -341,17 +341,17 @@
         }
 
         function imgSrc(product) {
-    // If product has an uploaded image, use it
-    if (product.image) {
-        return '/storage/' + product.image;
-    }
-    // For service products without an image, use service.png
-    if (product.type === 'service') {
-        return '/service.png';
-    }
-    // Default image for regular products
-    return '/default.jpeg';
-}
+            // If product has an uploaded image, use it
+            if (product.image) {
+                return '/storage/' + product.image;
+            }
+            // For service products without an image, use service.png
+            if (product.type === 'service') {
+                return '/service.png';
+            }
+            // Default image for regular products
+            return '/default.jpeg';
+        }
 
         function imgError(el) {
             el.onerror = null;
@@ -461,56 +461,57 @@
             };
         }
 
-       function updateCartUI() {
-    try {
-        var t = calculateTotals();
-        document.getElementById('cartBadge').innerText = t.itemCount;
-        document.getElementById('subtotal').innerText = CURRENCY + t.subtotal.toFixed(2);
-        document.getElementById('taxAmount').innerText = CURRENCY + t.tax.toFixed(2);
-        document.getElementById('grandTotal').innerText = CURRENCY + t.grandTotal.toFixed(2);
+        function updateCartUI() {
+            try {
+                var t = calculateTotals();
+                document.getElementById('cartBadge').innerText = t.itemCount;
+                document.getElementById('subtotal').innerText = CURRENCY + t.subtotal.toFixed(2);
+                document.getElementById('taxAmount').innerText = CURRENCY + t.tax.toFixed(2);
+                document.getElementById('grandTotal').innerText = CURRENCY + t.grandTotal.toFixed(2);
 
-        var amountInput = document.getElementById('amountPaidInput');
-        var customerId = document.getElementById('customerSelect').value;
-        if (amountInput) {
-            if (!customerId) {
-                amountInput.value = t.grandTotal.toFixed(2);
-                amountInput.readOnly = true;
-            } else {
-                amountInput.readOnly = false;
-                if (parseFloat(amountInput.value) === 0) {
-                    amountInput.value = t.grandTotal.toFixed(2);
+                var amountInput = document.getElementById('amountPaidInput');
+                var customerId = document.getElementById('customerSelect').value;
+                if (amountInput) {
+                    if (!customerId) {
+                        amountInput.value = t.grandTotal.toFixed(2);
+                        amountInput.readOnly = true;
+                    } else {
+                        amountInput.readOnly = false;
+                        if (parseFloat(amountInput.value) === 0) {
+                            amountInput.value = t.grandTotal.toFixed(2);
+                        }
+                    }
                 }
-            }
-        }
-        updateAmountPaidHint();
+                updateAmountPaidHint();
 
-        if (cart.length === 0) {
-            document.getElementById('cartItemsList').innerHTML = '<div class="text-center text-slate-400 py-8">Cart is empty</div>';
-            return;
-        }
-
-        var html = '';
-        for (var idx = 0; idx < cart.length; idx++) {
-            var item = cart[idx];
-            var p = getProductById(item.productId);
-            if (!p) continue;
-
-            // Determine the effective price
-            var effectivePrice = p.price;
-            if (p.allow_price_override) {
-                if (item.customPrice !== undefined && item.customPrice !== null && !isNaN(item.customPrice)) {
-                    effectivePrice = item.customPrice;
-                } else {
-                    // If customPrice is not set, use the product's price (and store it)
-                    effectivePrice = p.price;
-                    item.customPrice = effectivePrice;
+                if (cart.length === 0) {
+                    document.getElementById('cartItemsList').innerHTML =
+                        '<div class="text-center text-slate-400 py-8">Cart is empty</div>';
+                    return;
                 }
-            }
-            var lineTotal = effectivePrice * item.quantity;
 
-            var priceHtml = '';
-            if (p.allow_price_override) {
-                priceHtml = `
+                var html = '';
+                for (var idx = 0; idx < cart.length; idx++) {
+                    var item = cart[idx];
+                    var p = getProductById(item.productId);
+                    if (!p) continue;
+
+                    // Determine the effective price
+                    var effectivePrice = p.price;
+                    if (p.allow_price_override) {
+                        if (item.customPrice !== undefined && item.customPrice !== null && !isNaN(item.customPrice)) {
+                            effectivePrice = item.customPrice;
+                        } else {
+                            // If customPrice is not set, use the product's price (and store it)
+                            effectivePrice = p.price;
+                            item.customPrice = effectivePrice;
+                        }
+                    }
+                    var lineTotal = effectivePrice * item.quantity;
+
+                    var priceHtml = '';
+                    if (p.allow_price_override) {
+                        priceHtml = `
                     <div class="flex items-center gap-1 justify-end">
                         <span class="text-slate-400 text-xs">${CURRENCY}</span>
                         <input type="number" step="0.01" class="editable-price w-20 text-right bg-slate-700 border border-slate-600 rounded px-1 py-0.5 text-sm text-white"
@@ -518,11 +519,11 @@
                         <span class="text-slate-400 text-xs">ea</span>
                     </div>
                 `;
-            } else {
-                priceHtml = `<p class="text-brand-400 text-xs">${CURRENCY}${p.price.toFixed(2)} ea</p>`;
-            }
+                    } else {
+                        priceHtml = `<p class="text-brand-400 text-xs">${CURRENCY}${p.price.toFixed(2)} ea</p>`;
+                    }
 
-            html += `<div class="bg-surface-card p-3 rounded-xl">
+                    html += `<div class="bg-surface-card p-3 rounded-xl">
                 <div class="flex gap-3">
                     <img class="w-12 h-12 rounded-lg object-cover bg-surface-DEFAULT flex-shrink-0" src="${imgSrc(p)}" alt="${escHtml(p.name)}" onerror="imgError(this)">
                     <div class="flex-1 min-w-0">
@@ -545,14 +546,14 @@
                     <button onclick="removeItem(${p.id})" class="text-red-400 hover:text-red-300 text-xs">✕ Remove</button>
                 </div>
             </div>`;
+                }
+                document.getElementById('cartItemsList').innerHTML = html;
+                attachPriceEditListeners();
+            } catch (err) {
+                console.error('Error in updateCartUI:', err);
+                alert('An error occurred while updating the cart. Please refresh the page.');
+            }
         }
-        document.getElementById('cartItemsList').innerHTML = html;
-        attachPriceEditListeners();
-    } catch (err) {
-        console.error('Error in updateCartUI:', err);
-        alert('An error occurred while updating the cart. Please refresh the page.');
-    }
-}
 
         function attachPriceEditListeners() {
             document.querySelectorAll('.editable-price').forEach(input => {
@@ -644,10 +645,11 @@
 
         document.getElementById('customerSelect').addEventListener('change', updateCustomerBalance);
         document.getElementById('amountPaidInput').addEventListener('input', function() {
-            var grandTotal = parseFloat(document.getElementById('grandTotal').innerText.replace(CURRENCY, ''));
             var val = parseFloat(this.value);
-            if (isNaN(val)) this.value = grandTotal.toFixed(2);
-            else if (val < 0) this.value = '0';
+            // Allow empty field (user clearing) – do nothing
+            if (this.value === '') return;
+            if (isNaN(val)) return; // keep text that is not a number
+            if (val < 0) this.value = '0';
         });
 
         // Product grid rendering
