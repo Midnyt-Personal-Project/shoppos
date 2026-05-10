@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+
 use App\{Syncable, SyncableFile};
 
 class Product extends Model
@@ -12,14 +13,29 @@ class Product extends Model
 {
     use SyncableFile;
     protected $fillable = [
-        'shop_id', 'name', 'barcode', 'sku', 'category','branch','image',
-        'description', 'price', 'cost', 'unit', 'image', 'is_active',
+        'shop_id',
+        'name',
+        'barcode',
+        'sku',
+        'category',
+        'branch',
+        'image',
+        'description',
+        'price',
+        'cost',
+        'type',
+        'unit',
+        'image',
+        'is_active',
+        'allow_price_override',
     ];
 
     protected $casts = [
         'price'     => 'float',
         'cost'      => 'float',
+        'type' => 'string',
         'is_active' => 'boolean',
+        'allow_price_override' => 'boolean',
     ];
 
     public function shop(): BelongsTo
@@ -27,6 +43,15 @@ class Product extends Model
         return $this->belongsTo(Shop::class);
     }
 
+    public function isService(): bool
+    {
+        return $this->type === 'service';
+    }
+
+    public function isProduct(): bool
+    {
+        return $this->type === 'product';
+    }
     public function stocks(): HasMany
     {
         return $this->hasMany(BranchStock::class);
@@ -67,8 +92,8 @@ class Product extends Model
     {
         return $q->where(function ($q) use ($term) {
             $q->where('name', 'like', "%$term%")
-              ->orWhere('barcode', 'like', "%$term%")
-              ->orWhere('sku', 'like', "%$term%");
+                ->orWhere('barcode', 'like', "%$term%")
+                ->orWhere('sku', 'like', "%$term%");
         });
     }
 }

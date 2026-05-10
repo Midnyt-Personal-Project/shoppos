@@ -109,51 +109,61 @@ class ProductController extends Controller
 }
 
     public function store(Request $request)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'barcode'     => 'nullable|string|max:100',
-            'sku'         => 'nullable|string|max:100',
-            'category'    => 'nullable|string|max:100',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'cost'        => 'required|numeric|min:0',
-            'unit'        => 'required|string|max:50',
-            'is_active'   => 'boolean',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif', 
-            // Branch stock rows: branch_stocks[branch_id] = { qty, low_stock_alert }
-            'branch_stocks'                  => 'required|array|min:1',
-            'branch_stocks.*.branch_id'      => 'required|exists:branches,id',
-            'branch_stocks.*.quantity'       => 'required|numeric|min:0',
-            'branch_stocks.*.low_stock_alert'=> 'required|numeric|min:0',
+    // Base validation rules (common for both product & service)
+    $rules = [
+        'name'        => 'required|string|max:255',
+        'barcode'     => 'nullable|string|max:100',
+        'sku'         => 'nullable|string|max:100',
+        'category'    => 'nullable|string|max:100',
+        'description' => 'nullable|string',
+        'price'       => 'required|numeric|min:0',
+        'cost'        => 'required|numeric|min:0',
+        'unit'        => 'required|string|max:50',
+        'is_active'   => 'boolean',
+        'type'        => 'required|in:product,service',
+        'allow_price_override' => 'boolean',
+        'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif',
+    ];
+
+    // Conditionally add branch_stocks validation only for products
+    if ($request->type === 'product') {
+        $rules['branch_stocks'] = 'required|array|min:1';
+        $rules['branch_stocks.*.branch_id'] = 'required|exists:branches,id';
+        $rules['branch_stocks.*.quantity'] = 'required|numeric|min:0';
+        $rules['branch_stocks.*.low_stock_alert'] = 'required|numeric|min:0';
+    }
+
+    $data = $request->validate($rules);
+
+    DB::beginTransaction();
+    try {
+        $product = Product::create([
+            'shop_id'     => $user->shop_id,
+            'name'        => $data['name'],
+            'barcode'     => $data['barcode'] ?? null,
+            'sku'         => $data['sku'] ?? null,
+            'category'    => $data['category'] ?? null,
+            'description' => $data['description'] ?? null,
+            'price'       => $data['price'],
+            'cost'        => $data['cost'],
+            'unit'        => $data['unit'],
+            'is_active'   => $request->boolean('is_active', true),
+            'type'        => $data['type'],
+            'allow_price_override' => $request->boolean('allow_price_override', true),
         ]);
-        
 
-        DB::beginTransaction();
-        try {
-            $product = Product::create([
-                'shop_id'     => $user->shop_id,
-                'name'        => $data['name'],
-                'barcode'     => $data['barcode'] ?? null,
-                'sku'         => $data['sku']     ?? null,
-                'category'    => $data['category'] ?? null,
-                'description' => $data['description'] ?? null,
-                'price'       => $data['price'],
-                'image'       => $data['image'] ?? null,
-                'cost'        => $data['cost'],
-                'unit'        => $data['unit'],
-                'is_active'   => $request->boolean('is_active', true),
-            ]);
-            if ($request->hasFile('image')) {
-                $path = $request->file('image')->store('products', 'public');
-                $product->image = $path;
-                $product->save();
-            }
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $product->image = $path;
+            $product->save();
+        }
 
+        // Only handle branch stocks if type is product and branch_stocks present
+        if ($data['type'] === 'product' && !empty($data['branch_stocks'])) {
             foreach ($data['branch_stocks'] as $bs) {
-                // Only allow branches in this shop
                 $branch = Branch::where('id', $bs['branch_id'])
                                 ->where('shop_id', $user->shop_id)
                                 ->firstOrFail();
@@ -163,16 +173,17 @@ class ProductController extends Controller
                     ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
                 );
             }
-
-            ActivityLog::record('product_created', ['product' => $product->name], $product);
-            DB::commit();
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('products.index')->with('success', 'Product added successfully.');
+        ActivityLog::record('product_created', ['product' => $product->name], $product);
+        DB::commit();
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return back()->withErrors(['error' => $e->getMessage()])->withInput();
     }
+
+    return redirect()->route('products.index')->with('success', 'Product added successfully.');
+}
 
     public function edit(Product $product)
     {
@@ -189,44 +200,54 @@ class ProductController extends Controller
         return view('products.edit', compact('product', 'branches', 'stocksByBranch'));
     }
 
-    public function update(Request $request, Product $product)
-    {
-        $this->authorizeProduct($product);
-        $user = auth()->user();
+   public function update(Request $request, Product $product)
+{
+    $this->authorizeProduct($product);
+    $user = auth()->user();
 
-        $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'barcode'     => 'nullable|string|max:100',
-            'sku'         => 'nullable|string|max:100',
-            'category'    => 'nullable|string|max:100',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'cost'        => 'required|numeric|min:0',
-            'unit'        => 'required|string|max:50',
-            'is_active'   => 'boolean',
-            'branch_stocks'                   => 'required|array|min:1',
-            'branch_stocks.*.branch_id'       => 'required|exists:branches,id',
-            'branch_stocks.*.quantity'        => 'required|numeric|min:0',
-            'branch_stocks.*.low_stock_alert' => 'required|numeric|min:0',
+    // Base validation rules
+    $rules = [
+        'name'        => 'required|string|max:255',
+        'barcode'     => 'nullable|string|max:100',
+        'sku'         => 'nullable|string|max:100',
+        'category'    => 'nullable|string|max:100',
+        'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif',
+        'description' => 'nullable|string',
+        'price'       => 'required|numeric|min:0',
+        'cost'        => 'required|numeric|min:0',
+        'unit'        => 'required|string|max:50',
+        'is_active'   => 'boolean',
+        'type'        => 'required|in:product,service',
+        'allow_price_override' => 'boolean',
+    ];
+
+    // Conditionally require branch_stocks only for products
+    if ($request->type === 'product') {
+        $rules['branch_stocks'] = 'required|array|min:1';
+        $rules['branch_stocks.*.branch_id'] = 'required|exists:branches,id';
+        $rules['branch_stocks.*.quantity'] = 'required|numeric|min:0';
+        $rules['branch_stocks.*.low_stock_alert'] = 'required|numeric|min:0';
+    }
+
+    $data = $request->validate($rules);
+
+    DB::beginTransaction();
+    try {
+        $product->update([
+            'name'        => $data['name'],
+            'barcode'     => $data['barcode'] ?? null,
+            'sku'         => $data['sku'] ?? null,
+            'category'    => $data['category'] ?? null,
+            'description' => $data['description'] ?? null,
+            'price'       => $data['price'],
+            'cost'        => $data['cost'],
+            'unit'        => $data['unit'],
+            'is_active'   => $request->boolean('is_active'),
+            'type'        => $data['type'],
+            'allow_price_override' => $request->boolean('allow_price_override', true),
         ]);
 
-        DB::beginTransaction();
-        try {
-            $product->update([
-                'name'        => $data['name'],
-                'barcode'     => $data['barcode'] ?? null,
-                'sku'         => $data['sku']     ?? null,
-                'category'    => $data['category'] ?? null,
-                'description' => $data['description'] ?? null,
-                'price'       => $data['price'],
-                'image'       => $data['image'] ?? null,
-                'cost'        => $data['cost'],
-                'unit'        => $data['unit'],
-                'is_active'   => $request->boolean('is_active'),
-            ]);
-             if ($request->hasFile('image')) {
-            // Delete old image if exists
+        if ($request->hasFile('image')) {
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
@@ -235,6 +256,8 @@ class ProductController extends Controller
             $product->save();
         }
 
+        // Only handle branch stocks if product type is 'product'
+        if ($data['type'] === 'product' && !empty($data['branch_stocks'])) {
             foreach ($data['branch_stocks'] as $bs) {
                 $branch = Branch::where('id', $bs['branch_id'])
                                 ->where('shop_id', $user->shop_id)
@@ -245,16 +268,17 @@ class ProductController extends Controller
                     ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
                 );
             }
-
-            ActivityLog::record('product_updated', ['product' => $product->name], $product);
-            DB::commit();
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('products.index')->with('success', 'Product updated.');
+        ActivityLog::record('product_updated', ['product' => $product->name], $product);
+        DB::commit();
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return back()->withErrors(['error' => $e->getMessage()])->withInput();
     }
+
+    return redirect()->route('products.index')->with('success', 'Product updated.');
+}
 
     public function destroy(Product $product)
     {

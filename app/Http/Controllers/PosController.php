@@ -4,44 +4,43 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log};
+
 use App\Events\{SaleCompleted, StockLow};
 use App\Models\{ActivityLog, BranchStock, Customer, Payment, Product, Sale, SaleItem, TaxRate};
 
 class PosController extends Controller
 {
     public function index()
-    {
-        $user     = auth()->user();
-        $branchId = $user->branch_id;
-        $customers = Customer::where('shop_id', $user->shop_id)->orderBy('name')->get();
-       
-        $taxRates = TaxRate::where('is_active', true)->orderBy('order')->get(['name', 'rate']);
+{
+    $user     = auth()->user();
+    $branchId = $user->branch_id;
+    $customers = Customer::where('shop_id', $user->shop_id)->orderBy('name')->get();
+    $taxRates = TaxRate::where('is_active', true)->orderBy('order')->get(['name', 'rate']);
 
-        $products = Product::where('shop_id', $user->shop_id)
-            ->where('is_active', true)
-            ->with(['stocks' => fn($q) => $q->where('branch_id', $branchId)])
-            ->orderBy('name')
-            ->get()
-            ->map(fn($p) => [
-                'id'       => $p->id,
-                'is_active' => $p->is_active,
-                'name'     => $p->name,
-                'barcode'  => $p->barcode ?? '',
-                'price'    => (float) $p->price,
-                'cost'     => (float) $p->cost,
-                'unit'     => $p->unit,
-                'category' => $p->category ?? '',
-                'image'    => $p->image,
-                'stock'    => $p->stocks->first()?->quantity ?? 0,
-            ])
-            ->values();
+    $products = Product::where('shop_id', $user->shop_id)
+        ->where('is_active', true)
+        ->with(['stocks' => fn($q) => $q->where('branch_id', $branchId)])
+        ->orderBy('name')
+        ->get()
+        ->map(fn($p) => [
+            'id'       => $p->id,
+            'name'     => $p->name,
+            'barcode'  => $p->barcode ?? '',
+            'price'    => (float) $p->price,
+            'cost'     => (float) $p->cost,
+            'unit'     => $p->unit,
+            'category' => $p->category ?? '',
+            'image'    => $p->image,
+            'stock'    => $p->stocks->first()?->quantity ?? 0,
+            'type'     => $p->type,
+            'allow_price_override' => (bool) $p->allow_price_override,
+        ])
+        ->values();
 
-            // dd($products);
+    $categories = $products->pluck('category')->filter()->unique()->sort()->values();
 
-        $categories = $products->pluck('category')->filter()->unique()->sort()->values();
-
-        return view('pos.index', compact('customers', 'products', 'categories', 'taxRates'));
-    }
+    return view('pos.index', compact('customers', 'products', 'categories', 'taxRates'));
+}
 
     public function searchProduct(Request $request)
     {

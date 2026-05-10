@@ -165,15 +165,14 @@ Route::middleware(['auth', 'role'])->group(function () {
 
     // Daily sales summary — sent every day at 8:00 PM
     Schedule::command('omnipos:daily-summary')
-        ->dailyAt('04:43')
+        ->dailyAt('00:16')
         ->withoutOverlapping()
         ->runInBackground();
 
     // Weekly debt reminder — every Monday at 9:00 AM
     Schedule::command('omnipos:debt-reminder')
-        ->weekly()
-        ->mondays()
-        ->at('04:41')
-        ->withoutOverlapping()
-        ->runInBackground();
+    ->mondays()
+    ->at('06:40')
+    ->withoutOverlapping()
+    ->runInBackground();
 });

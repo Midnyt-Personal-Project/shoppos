@@ -3,8 +3,10 @@
 namespace App\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+
 use App\Events\{SaleCompleted, StockLow};
 use App\Listeners\{SendLowStockAlert, SendSaleNotification};
+use App\Services\ExternalApiServer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        
     }
 
     /**
@@ -21,9 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
-        // ── Event → Listener bindings ─────────────────────────────────────────
-        // Event::listen(SaleCompleted::class, SendSaleNotification::class);
-        // Event::listen(StockLow::class,      SendLowStockAlert::class);
+         
+        // ExternalApiServer::start();
     }
 }

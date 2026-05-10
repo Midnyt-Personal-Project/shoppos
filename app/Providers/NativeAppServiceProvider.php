@@ -3,21 +3,46 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use ExternalApiServer;
+
 use App\Events\ManualUpdateCheck;
 use Native\Desktop\Contracts\ProvidesPhpIni;
 use Native\Desktop\Events\AutoUpdater\{CheckingForUpdate, Error, UpdateAvailable, UpdateDownloaded, UpdateNotAvailable};
-use Native\Desktop\Facades\{AutoUpdater, Menu, Process, Window};
+use Native\Desktop\Facades\{AutoUpdater, ChildProcess, Menu, Process, Window};
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
     public function boot(): void
     {
+
+    
+//   if (! ChildProcess::get('external-api')) {
+//     ExternalApiServer::start();
+// }
+
     //    Process::start('php artisan sync:auto', [
     //     'cwd' => base_path(),
     //     'restartOnExit' => true,
-    // ]);  
-    AutoUpdater::checkForUpdates();
-    AutoUpdater::quitAndInstall();
+    // ])
+    //  Window::onReady(function () {
+    //     ChildProcess::start(
+    //         cmd: 'php -S 127.0.0.1:9001 external-api-server.php',
+    //         alias: 'external-api',
+    //         persistent: true
+    //     );
+    // });
+    //  Window::onReady(function () {
+
+    //     // ✅ Start your external API properly (use router.php)
+        ChildProcess::start(
+            cmd: 'php -S 127.0.0.1:9001 router.php',
+            alias: 'external-api',
+            persistent: true
+        );
+
+    //     // ✅ Safe updater check (NO quitAndInstall here)
+    //     AutoUpdater::checkForUpdates();
+    // });
     // ─── Register AutoUpdater Event Listeners FIRST ─────────────
         // \Illuminate\Support\Facades\Event::listen(
         //     CheckingForUpdate::class,
