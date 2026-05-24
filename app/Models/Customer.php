@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 
 class Customer extends Model
 {
     protected $fillable = [
-        'shop_id', 'name', 'phone', 'email', 'address',
+        'shop_id', 'name', 'phone', 'email', 'address',  'branch_id',
         'credit_limit', 'outstanding_balance',
     ];
 
@@ -43,6 +42,10 @@ class Customer extends Model
         $this->increment('outstanding_balance', $amount);
     }
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
     public function reduceDebt(float $amount): void
     {
         $this->decrement('outstanding_balance', $amount);

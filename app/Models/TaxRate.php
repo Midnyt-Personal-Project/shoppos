@@ -9,7 +9,7 @@ class TaxRate extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'rate', 'order', 'description', 'is_active', 'created_by'];
+    protected $fillable = ['name', 'rate', 'order', 'description', 'branch_id', 'is_active', 'created_by'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -19,6 +19,11 @@ class TaxRate extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function shop()

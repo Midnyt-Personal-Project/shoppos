@@ -83,6 +83,11 @@ class Product extends Model
         return $q->where('is_active', true);
     }
 
+    public function serviceBranches()
+    {
+        return $this->belongsToMany(Branch::class, 'service_branches', 'product_id', 'branch_id');
+    }
+
     public function scopeForShop($q, int $shopId)
     {
         return $q->where('shop_id', $shopId);

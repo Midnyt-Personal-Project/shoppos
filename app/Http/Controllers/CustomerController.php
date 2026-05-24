@@ -11,24 +11,31 @@ use App\Models\{Customer, Payment, Sale};
 class CustomerController extends Controller
 {
     public function index(Request $request)
-    {
-        $user  = auth()->user();
-        $query = Customer::where('shop_id', $user->shop_id);
+{
+    $user = auth()->user();
+    $query = Customer::where('shop_id', $user->shop_id);
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('phone', 'like', '%' . $request->search . '%');
-            });
-        }
-        
-        if ($request->filled('has_debt') && $request->has_debt === 'yes') {
-            $query->where('outstanding_balance', '>', 0);
-        }
-
-        $customers = $query->orderBy('name')->paginate(20)->withQueryString();
-        return view('customers.index', compact('customers'));
+    // 👇 Branch filtering based on role
+    if (!in_array($user->role, ['admin', 'owner'])) {
+        // Managers and cashiers see only their own branch customers
+        $query->where('branch_id', $user->branch_id);
     }
+    // Admin/owner see all branches (no branch filter)
+
+    if ($request->filled('search')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('name', 'like', '%' . $request->search . '%')
+              ->orWhere('phone', 'like', '%' . $request->search . '%');
+        });
+    }
+    
+    if ($request->filled('has_debt') && $request->has_debt === 'yes') {
+        $query->where('outstanding_balance', '>', 0);
+    }
+
+    $customers = $query->orderBy('name')->paginate(20)->withQueryString();
+    return view('customers.index', compact('customers'));
+}
 
     public function store(Request $request)
 {
@@ -58,6 +65,7 @@ class CustomerController extends Controller
         'shop_id'             => auth()->user()->shop_id,
         'name'                => $request->name,
         'phone'               => $request->phone,
+        'branch_id' => current_branch()->id, 
         'email'               => $request->email,
         'outstanding_balance' => 0,
     ]);

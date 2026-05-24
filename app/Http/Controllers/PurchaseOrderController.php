@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
 use App\Models\{ActivityLog, BranchStock, Product, PurchaseOrder, PurchaseOrderItem};
 
 class PurchaseOrderController extends Controller
@@ -18,7 +19,7 @@ class PurchaseOrderController extends Controller
 
         // Non-admins only see their own branch
         if (! $user->isAdmin()) {
-            $query->where('branch_id', $user->branch_id);
+            $query->where('branch_id',  current_branch()->id);
         }
 
         if ($request->filled('status')) {
@@ -49,7 +50,7 @@ class PurchaseOrderController extends Controller
         $user     = auth()->user();
         $products = Product::forShop($user->shop_id)
             ->active()
-            ->with(['stocks' => fn($q) => $q->where('branch_id', $user->branch_id)])
+            ->with(['stocks' => fn($q) => $q->where('branch_id', current_branch()->id)])
             ->orderBy('name')
             ->get();
 
@@ -74,9 +75,9 @@ class PurchaseOrderController extends Controller
         DB::beginTransaction();
         try {
             $po = PurchaseOrder::create([
-                'reference'      => PurchaseOrder::generateReference($user->branch_id),
+                'reference'      => PurchaseOrder::generateReference(current_branch()->id),
                 'shop_id'        => $user->shop_id,
-                'branch_id'      => $user->branch_id,
+                'branch_id'      => current_branch()->id,
                 'created_by'     => $user->id,
                 'supplier_name'  => $request->supplier_name,
                 'supplier_phone' => $request->supplier_phone,

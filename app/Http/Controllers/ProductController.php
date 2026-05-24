@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{DB, Storage};
+use Illuminate\Support\Facades\{DB, Log, Storage};
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 use App\Models\{ActivityLog, Branch, BranchStock, Product, StockTransfer};
@@ -13,106 +14,175 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class ProductController extends Controller
 {
     public function index(Request $request)
-    {
-        $user     = auth()->user();
-        $branchId = $user->branch_id;
+{
+    $user     = auth()->user();
+    $branchId = current_branch()->id;
 
-        // Admins/owners can see all products globally; others see their branch
-        $query = Product::forShop($user->shop_id)
-            ->with([
-                // Load ALL branch stocks so we can show full branch breakdown
-                'stocks.branch',
-            ]);
+    // Admins/owners can see all products globally; others see their branch
+    $query = Product::forShop($user->shop_id)
+        ->with([
+            'stocks.branch',
+            'serviceBranches', // Load service branches too
+        ]);
 
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
-        }
-        // Filter: only show products stocked in my branch
-        if (!$user->isAdmin() || $request->branch_filter === 'mine') {
-            $query->whereHas('stocks', fn($q) => $q->where('branch_id', $branchId));
-        }
-
-        $products   = $query->orderBy('name')->paginate(20)->withQueryString();
-        $categories = Product::forShop($user->shop_id)->distinct()->pluck('category')->filter()->sort()->values();
-        $branches   = Branch::where('shop_id', $user->shop_id)->where('is_active', true)->get();
-
-        return view('products.index', compact('products', 'categories', 'branches', 'branchId'));
+    if ($request->filled('search')) {
+        $query->search($request->search);
+    }
+    if ($request->filled('category')) {
+        $query->where('category', $request->category);
+    }
+    if ($request->filled('status')) {
+        $query->where('is_active', $request->status === 'active');
     }
 
-    public function create()
-{
-    $user = auth()->user();
-    $shopId = $user->shop_id;
+    // Filter: show products and services in my branch
+    if (!$user->isAdmin() || $request->branch_filter === 'mine') {
+        $query->where(function ($q) use ($branchId) {
+            // Products with stock in this branch
+            $q->where('type', 'product')
+                ->whereHas('stocks', fn($subQ) => $subQ->where('branch_id', $branchId))
+            // OR services assigned to this branch
+            ->orWhere(function ($q) use ($branchId) {
+                $q->where('type', 'service')
+                    ->whereHas('serviceBranches', fn($subQ) => $subQ->where('branch_id', $branchId));
+            });
+        });
+    }
 
-    // 1. Fetch existing categories from products of this shop
-    $existingCategories = Product::where('shop_id', $shopId)
-        ->distinct()
-        ->pluck('category')
-        ->filter()
-        ->values()
-        ->toArray();
+    $products   = $query->orderBy('name')->paginate(20)->withQueryString();
+    $categories = Product::forShop($user->shop_id)->distinct()->pluck('category')->filter()->sort()->values();
+    $branches   = Branch::where('shop_id', $user->shop_id)->where('is_active', true)->get();
 
-    // 2. Fetch existing units from products of this shop
-    $existingUnits = Product::where('shop_id', $shopId)
-        ->distinct()
-        ->pluck('unit')
-        ->filter()
-        ->values()
-        ->toArray();
-
-    // 3. Predefined pharmacy categories (the 40+ list you provided)
-    $predefinedCategories = [
-         'Analgesics & Pain Relief', 'Antibiotics', 'Antimalarials',
-        'Anthelmintics (Dewormers)', 'Antifungals', 'Antivirals', 'Gastrointestinal Preparations',
-        'Respiratory Preparations', 'Antihistamines & Allergy', 'Cardiovascular Drugs',
-        'Endocrine & Diabetes Drugs', 'Neurology & Psychiatric Drugs',
-        'Vitamins, Minerals & Supplements', 'Fluids & Electrolytes (Oral & IV)',
-        'Antiseptics & Disinfectants', 'Medical Supplies & Consumables (Non-Drug)',
-        'Diagnostic Tests & Equipment', 'Wound Care & Suturing', 'Mobility & Orthopedic Supports',
-        'Infection Control & Sterilization', 'Pharmacy Accessories (Pill cutters, containers)',
-        'Vaccine & Cold Chain Supplies', 'Specialty Injectables', 'Ophthalmology (Eye) Preparations',
-        'Otology (Ear) Preparations', 'Dental & Oral Care', 'Nasal Preparations',
-        'Reproductive Health & Contraceptives', 'Pediatric Specific Preparations',
-        'Nutritional & Enteral Feeds', 'Herbal & Traditional Remedies',
-        'Dermatology (Skin) Preparations (excluding antifungals)', 'Cough & Cold Preparations',
-        'Emergency & Resuscitation Drugs', 'Controlled Substances (Narcotics)',
-        'Topical Corticosteroids', 'Muscle Relaxants'
-    ];
-
-    // 4. Predefined pharmacy units
-    $predefinedUnits = [
-        'Tablet', 'Capsule', 'Strip', 'Pack', 'Bottle', 'Box', 'Vial', 'Inhaler', 'Sachet',
-        'Tube', 'Jar', 'Roll', 'Piece', 'Pair', 'Set', 'Kg', 'g', 'Litre', 'ml', 'Syringe',
-        'Pessary', 'Suppository', 'Drop', 'Spray', 'Cream', 'Ointment', 'Gel', 'Lotion',
-        'Powder', 'Patch', 'Test', 'Meter', 'Pair (gloves)', 'Mask', 'Dressing', 'Bandage',
-        'Tape', 'Catheter', 'Bag', 'Thermometer', 'Monitor', 'Lancet'
-    ];
-
-    // 5. Merge and deduplicate
-    $allCategories = array_unique(array_merge($existingCategories, $predefinedCategories));
-    $allUnits = array_unique(array_merge($existingUnits, $predefinedUnits));
-
-    // Sort alphabetically
-    sort($allCategories);
-    sort($allUnits);
-
-    // 6. Get branches for stock assignment
-    $branches = Branch::where('shop_id', $shopId)->where('is_active', true)->get();
-
-    return view('products.create', compact('branches', 'allCategories', 'allUnits'));
+    return view('products.index', compact('products', 'categories', 'branches', 'branchId'));
 }
 
-    public function store(Request $request)
+    public function create()
+    {
+        $user = auth()->user();
+        $shopId = $user->shop_id;
+
+        // 1. Fetch existing categories from products of this shop
+        $existingCategories = Product::where('shop_id', $shopId)
+            ->distinct()
+            ->pluck('category')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // 2. Fetch existing units from products of this shop
+        $existingUnits = Product::where('shop_id', $shopId)
+            ->distinct()
+            ->pluck('unit')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // 3. Predefined pharmacy categories (the 40+ list you provided)
+        $predefinedCategories = [
+            'Analgesics & Pain Relief',
+            'Antibiotics',
+            'Antimalarials',
+            'Anthelmintics (Dewormers)',
+            'Antifungals',
+            'Antivirals',
+            'Gastrointestinal Preparations',
+            'Respiratory Preparations',
+            'Antihistamines & Allergy',
+            'Cardiovascular Drugs',
+            'Endocrine & Diabetes Drugs',
+            'Neurology & Psychiatric Drugs',
+            'Vitamins, Minerals & Supplements',
+            'Fluids & Electrolytes (Oral & IV)',
+            'Antiseptics & Disinfectants',
+            'Medical Supplies & Consumables (Non-Drug)',
+            'Diagnostic Tests & Equipment',
+            'Wound Care & Suturing',
+            'Mobility & Orthopedic Supports',
+            'Infection Control & Sterilization',
+            'Pharmacy Accessories (Pill cutters, containers)',
+            'Vaccine & Cold Chain Supplies',
+            'Specialty Injectables',
+            'Ophthalmology (Eye) Preparations',
+            'Otology (Ear) Preparations',
+            'Dental & Oral Care',
+            'Nasal Preparations',
+            'Reproductive Health & Contraceptives',
+            'Pediatric Specific Preparations',
+            'Nutritional & Enteral Feeds',
+            'Herbal & Traditional Remedies',
+            'Dermatology (Skin) Preparations (excluding antifungals)',
+            'Cough & Cold Preparations',
+            'Emergency & Resuscitation Drugs',
+            'Controlled Substances (Narcotics)',
+            'Topical Corticosteroids',
+            'Muscle Relaxants'
+        ];
+
+        // 4. Predefined pharmacy units
+        $predefinedUnits = [
+            'Tablet',
+            'Capsule',
+            'Strip',
+            'Pack',
+            'Bottle',
+            'Box',
+            'Vial',
+            'Inhaler',
+            'Sachet',
+            'Tube',
+            'Jar',
+            'Roll',
+            'Piece',
+            'Pair',
+            'Set',
+            'Kg',
+            'g',
+            'Litre',
+            'ml',
+            'Syringe',
+            'Pessary',
+            'Suppository',
+            'Drop',
+            'Spray',
+            'Cream',
+            'Ointment',
+            'Gel',
+            'Lotion',
+            'Powder',
+            'Patch',
+            'Test',
+            'Meter',
+            'Pair (gloves)',
+            'Mask',
+            'Dressing',
+            'Bandage',
+            'Tape',
+            'Catheter',
+            'Bag',
+            'Thermometer',
+            'Monitor',
+            'Lancet'
+        ];
+
+        // 5. Merge and deduplicate
+        $allCategories = array_unique(array_merge($existingCategories, $predefinedCategories));
+        $allUnits = array_unique(array_merge($existingUnits, $predefinedUnits));
+
+        // Sort alphabetically
+        sort($allCategories);
+        sort($allUnits);
+
+        // 6. Get branches for stock assignment
+        $branches = Branch::where('shop_id', $shopId)->where('is_active', true)->get();
+
+        return view('products.create', compact('branches', 'allCategories', 'allUnits'));
+    }
+
+  public function store(Request $request)
 {
     $user = auth()->user();
 
-    // Base validation rules (common for both product & service)
+    // Base validation rules
     $rules = [
         'name'        => 'required|string|max:255',
         'barcode'     => 'nullable|string|max:100',
@@ -128,18 +198,24 @@ class ProductController extends Controller
         'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif',
     ];
 
-    // Conditionally add branch_stocks validation only for products
     if ($request->type === 'product') {
         $rules['branch_stocks'] = 'required|array|min:1';
         $rules['branch_stocks.*.branch_id'] = 'required|exists:branches,id';
         $rules['branch_stocks.*.quantity'] = 'required|numeric|min:0';
         $rules['branch_stocks.*.low_stock_alert'] = 'required|numeric|min:0';
+    } elseif ($request->type === 'service') {
+        // For services, use service_branches directly
+        $rules['service_branches'] = 'nullable|array';
+        $rules['service_branches.*'] = 'required|exists:branches,id';
     }
 
+    Log::info('Raw request data:', $request->all());
     $data = $request->validate($rules);
+    Log::info($data);
 
     DB::beginTransaction();
     try {
+        // 1. Create the product
         $product = Product::create([
             'shop_id'     => $user->shop_id,
             'name'        => $data['name'],
@@ -161,17 +237,27 @@ class ProductController extends Controller
             $product->save();
         }
 
-        // Only handle branch stocks if type is product and branch_stocks present
-        if ($data['type'] === 'product' && !empty($data['branch_stocks'])) {
-            foreach ($data['branch_stocks'] as $bs) {
-                $branch = Branch::where('id', $bs['branch_id'])
-                                ->where('shop_id', $user->shop_id)
-                                ->firstOrFail();
+        // 2. Handle branch assignment
+        if ($data['type'] === 'product') {
+            // For products: use branch_stocks
+            if (!empty($data['branch_stocks'])) {
+                foreach ($data['branch_stocks'] as $bs) {
+                    $branch = Branch::where('id', $bs['branch_id'])
+                        ->where('shop_id', $user->shop_id)
+                        ->firstOrFail();
 
-                BranchStock::updateOrCreate(
-                    ['branch_id' => $branch->id, 'product_id' => $product->id],
-                    ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
-                );
+                    BranchStock::updateOrCreate(
+                        ['branch_id' => $branch->id, 'product_id' => $product->id],
+                        ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
+                    );
+                }
+            }
+        } else { // service
+            // For services: use service_branches directly
+            if (!empty($data['service_branches'])) {
+                $product->serviceBranches()->sync($data['service_branches']);
+            } else {
+                $product->serviceBranches()->detach();
             }
         }
 
@@ -184,7 +270,6 @@ class ProductController extends Controller
 
     return redirect()->route('products.index')->with('success', 'Product added successfully.');
 }
-
     public function edit(Product $product)
     {
         $this->authorizeProduct($product);
@@ -200,12 +285,12 @@ class ProductController extends Controller
         return view('products.edit', compact('product', 'branches', 'stocksByBranch'));
     }
 
-   public function update(Request $request, Product $product)
+ public function update(Request $request, Product $product)
 {
     $this->authorizeProduct($product);
     $user = auth()->user();
 
-    // Base validation rules
+    // Validation rules
     $rules = [
         'name'        => 'required|string|max:255',
         'barcode'     => 'nullable|string|max:100',
@@ -221,18 +306,22 @@ class ProductController extends Controller
         'allow_price_override' => 'boolean',
     ];
 
-    // Conditionally require branch_stocks only for products
     if ($request->type === 'product') {
         $rules['branch_stocks'] = 'required|array|min:1';
         $rules['branch_stocks.*.branch_id'] = 'required|exists:branches,id';
         $rules['branch_stocks.*.quantity'] = 'required|numeric|min:0';
         $rules['branch_stocks.*.low_stock_alert'] = 'required|numeric|min:0';
+    } elseif ($request->type === 'service') {
+        // For services, use service_branches directly
+        $rules['service_branches'] = 'nullable|array';
+        $rules['service_branches.*'] = 'required|exists:branches,id';
     }
 
     $data = $request->validate($rules);
 
     DB::beginTransaction();
     try {
+        // Update product basic info
         $product->update([
             'name'        => $data['name'],
             'barcode'     => $data['barcode'] ?? null,
@@ -247,6 +336,7 @@ class ProductController extends Controller
             'allow_price_override' => $request->boolean('allow_price_override', true),
         ]);
 
+        // Handle image
         if ($request->hasFile('image')) {
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
@@ -256,17 +346,26 @@ class ProductController extends Controller
             $product->save();
         }
 
-        // Only handle branch stocks if product type is 'product'
-        if ($data['type'] === 'product' && !empty($data['branch_stocks'])) {
-            foreach ($data['branch_stocks'] as $bs) {
-                $branch = Branch::where('id', $bs['branch_id'])
-                                ->where('shop_id', $user->shop_id)
-                                ->firstOrFail();
-
-                BranchStock::updateOrCreate(
-                    ['branch_id' => $branch->id, 'product_id' => $product->id],
-                    ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
-                );
+        // --- Branch assignment handling ---
+        if ($data['type'] === 'product') {
+            // Physical product: update or create stock records for each submitted branch
+            if (!empty($data['branch_stocks'])) {
+                foreach ($data['branch_stocks'] as $bs) {
+                    $branch = Branch::where('id', $bs['branch_id'])
+                        ->where('shop_id', $user->shop_id)
+                        ->firstOrFail();
+                    BranchStock::updateOrCreate(
+                        ['branch_id' => $branch->id, 'product_id' => $product->id],
+                        ['quantity' => $bs['quantity'], 'low_stock_alert' => $bs['low_stock_alert']]
+                    );
+                }
+            }
+        } else { // service
+            // For services: use service_branches directly
+            if (!empty($data['service_branches'])) {
+                $product->serviceBranches()->sync($data['service_branches']);
+            } else {
+                $product->serviceBranches()->detach();
             }
         }
 
@@ -302,8 +401,8 @@ class ProductController extends Controller
 
         // Confirm branch belongs to this shop
         $branch = Branch::where('id', $request->branch_id)
-                        ->where('shop_id', $user->shop_id)
-                        ->firstOrFail();
+            ->where('shop_id', $user->shop_id)
+            ->firstOrFail();
 
         BranchStock::updateOrCreate(
             ['branch_id' => $branch->id, 'product_id' => $product->id],
@@ -311,8 +410,8 @@ class ProductController extends Controller
         );
 
         BranchStock::where('branch_id', $branch->id)
-                   ->where('product_id', $product->id)
-                   ->increment('quantity', $request->quantity);
+            ->where('product_id', $product->id)
+            ->increment('quantity', $request->quantity);
 
         ActivityLog::record('restock', [
             'product'  => $product->name,
@@ -324,8 +423,8 @@ class ProductController extends Controller
             'success'      => true,
             'message'      => "Added {$request->quantity} units to {$branch->name}.",
             'new_quantity' => BranchStock::where('branch_id', $branch->id)
-                                         ->where('product_id', $product->id)
-                                         ->value('quantity'),
+                ->where('product_id', $product->id)
+                ->value('quantity'),
         ]);
     }
 
@@ -346,8 +445,8 @@ class ProductController extends Controller
         $toBranch   = Branch::where('id', $request->to_branch_id)->where('shop_id', $user->shop_id)->firstOrFail();
 
         $fromStock = BranchStock::where('branch_id', $fromBranch->id)
-                                ->where('product_id', $product->id)
-                                ->first();
+            ->where('product_id', $product->id)
+            ->first();
 
         if (!$fromStock || $fromStock->quantity < $request->quantity) {
             return response()->json([
@@ -410,8 +509,8 @@ class ProductController extends Controller
         Branch::where('id', $request->branch_id)->where('shop_id', $user->shop_id)->firstOrFail();
 
         BranchStock::where('product_id', $product->id)
-                   ->where('branch_id', $request->branch_id)
-                   ->delete();
+            ->where('branch_id', $request->branch_id)
+            ->delete();
 
         ActivityLog::record('product_branch_removed', [
             'product'   => $product->name,
@@ -422,46 +521,46 @@ class ProductController extends Controller
     }
 
     public function downloadTemplate()
-{
-    $spreadsheet = new Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
-    // Set headers
-    $headers = ['name', 'price', 'stock', 'barcode', 'sku', 'cost', 'category', 'description'];
-    $col = 'A';
-    foreach ($headers as $header) {
-        $sheet->setCellValue($col . '1', $header);
-        $sheet->getStyle($col . '1')->getFont()->setBold(true);
-        $col++;
-    }
-
-    // Add sample row
-    $sheet->setCellValue('A2', 'Paracetamol 500mg');
-    $sheet->setCellValue('B2', 5.99);
-    $sheet->setCellValue('C2', 100);
-    $sheet->setCellValue('D2', '1234567890123');
-    $sheet->setCellValue('E2', 'PAR-001');
-    $sheet->setCellValue('F2', 3.50);
-    $sheet->setCellValue('G2', 'Analgesics');
-    $sheet->setCellValue('H2', 'Effective pain relief for headaches and fever.');
-
-    // Auto-size columns
-    foreach (range('A', 'H') as $col) {
-        $sheet->getColumnDimension($col)->setAutoSize(true);
-    }
-
-    // Create writer and stream response
-    $writer = new Xlsx($spreadsheet);
-    $response = new StreamedResponse(
-        function () use ($writer) {
-            $writer->save('php://output');
+        // Set headers
+        $headers = ['name', 'price', 'stock', 'barcode', 'sku', 'cost', 'category', 'description'];
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $col++;
         }
-    );
-    $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    $response->headers->set('Content-Disposition', 'attachment; filename="product_import_template.xlsx"');
 
-    return $response;
-}
+        // Add sample row
+        $sheet->setCellValue('A2', 'Paracetamol 500mg');
+        $sheet->setCellValue('B2', 5.99);
+        $sheet->setCellValue('C2', 100);
+        $sheet->setCellValue('D2', '1234567890123');
+        $sheet->setCellValue('E2', 'PAR-001');
+        $sheet->setCellValue('F2', 3.50);
+        $sheet->setCellValue('G2', 'Analgesics');
+        $sheet->setCellValue('H2', 'Effective pain relief for headaches and fever.');
+
+        // Auto-size columns
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Create writer and stream response
+        $writer = new Xlsx($spreadsheet);
+        $response = new StreamedResponse(
+            function () use ($writer) {
+                $writer->save('php://output');
+            }
+        );
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="product_import_template.xlsx"');
+
+        return $response;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

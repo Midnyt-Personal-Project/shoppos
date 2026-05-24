@@ -12,7 +12,7 @@ class SaleController extends Controller
     {
         $user  = auth()->user();
         $query = Sale::with(['user', 'customer', 'items'])
-            ->where('branch_id', $user->branch_id);
+            ->where('branch_id', current_branch()->id);
 
         if ($request->filled('search')) {
             $query->where('reference', 'like', '%' . $request->search . '%');
@@ -56,7 +56,7 @@ class SaleController extends Controller
 }
 
     private function authorizeSale(Sale $sale): void
-    {
-        if ($sale->branch_id !== auth()->user()->branch_id) abort(403);
-    }
+{
+    if ($sale->branch_id !== current_branch()->id) abort(403);
+}
 }

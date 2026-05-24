@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+
 use App\Models\{Branch, ShopSetting, TaxRate};
 use App\Services\MailService;
 
@@ -13,7 +14,7 @@ class SettingController extends Controller
         $user     = auth()->user();
         $shopId   = $user->shop_id;
         $branches = Branch::where('shop_id', $shopId)->where('is_active', true)->get();
-        $taxRates = TaxRate::where('is_active', true)->orderBy('rate')->get();
+        $taxRates = TaxRate::where('is_active', true)->where('branch_id', current_branch()->id)->orderBy('rate')->get();
         // Shop-level settings
         $shopSettings = [
             'shop_name'    => ShopSetting::get($shopId, 'shop_name',    $user->shop->name),

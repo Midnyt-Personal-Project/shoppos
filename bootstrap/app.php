@@ -4,7 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Middleware\{LicenseMiddleware, RoleMiddleware};
+use App\Http\Middleware\{LicenseMiddleware, RoleMiddleware, SetCurrentBranch};
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role'    => RoleMiddleware::class,
             'license' => LicenseMiddleware::class,
+            'branch'  => SetCurrentBranch::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

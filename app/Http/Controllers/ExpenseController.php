@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Expense;
 use Illuminate\Http\Request;
+
+use App\Models\Expense;
 
 class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        $branchId = auth()->user()->branch_id;
+        $branchId = current_branch()->id;
         $query    = Expense::with('user')->where('branch_id', $branchId);
 
         if ($request->filled('date_from')) $query->whereDate('expense_date', '>=', $request->date_from);
@@ -34,7 +35,7 @@ class ExpenseController extends Controller
         ]);
 
         Expense::create(array_merge($data, [
-            'branch_id' => $user->branch_id,
+            'branch_id' => current_branch()->id,
             'user_id'   => $user->id,
         ]));
 

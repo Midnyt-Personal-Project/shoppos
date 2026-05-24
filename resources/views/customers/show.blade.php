@@ -15,7 +15,13 @@
         <a href="{{ route('customers.edit', $customer) }}" class="btn-secondary text-xs">✎ Edit Customer</a>
     </div>
 
-    <div class="grid md:grid-cols-3 gap-4">
+    <div class="grid md:grid-cols-4 gap-4">
+        <div class="card p-5">
+            <p class="text-slate-500 text-xs">Branch</p>
+            <p class="text-2xl font-bold {{ $customer->outstanding_balance > 0 ? 'text-red-400' : 'text-green-400' }} mt-1">
+                {{ $customer->branch ? $customer->branch->name : '—' }}
+            </p>
+        </div>
         <div class="card p-5">
             <p class="text-slate-500 text-xs">Outstanding Debt</p>
             <p class="text-2xl font-bold {{ $customer->outstanding_balance > 0 ? 'text-red-400' : 'text-green-400' }} mt-1">

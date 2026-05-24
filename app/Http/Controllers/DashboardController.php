@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB};
-use App\Models\{ActivityLog, Branch, Customer, Expense, Product, Sale};
 use Carbon\Carbon;
+
+use App\Models\{ActivityLog, Branch, Customer, Expense, Product, Sale};
 
 class DashboardController extends Controller
 {
@@ -15,9 +16,7 @@ class DashboardController extends Controller
         $shopId = $user->shop_id;
 
         // For cashiers, scope to their branch only
-        $branchId = $user->isManager()
-            ? ($request->branch_id ?? $user->branch_id)
-            : $user->branch_id;
+        $branchId = current_branch()->id;
 
         $branch = Branch::find($branchId);
 
@@ -66,7 +65,7 @@ class DashboardController extends Controller
 
         // Low stock alerts
         $lowStock = \App\Models\BranchStock::with('product')
-            ->where('branch_id', $branchId)
+            ->where('branch_id', current_branch()->id)
             ->whereColumn('quantity', '<=', 'low_stock_alert')
             ->get();
 
@@ -78,15 +77,23 @@ class DashboardController extends Controller
             ? Branch::where('shop_id', $shopId)->with('sales')->get()
             : collect();
 
-        //All product
-        $products=Product::get()->count();
    
+
+// Count products (via BranchStock)
+$productCount = Product::where('type', 'product')
+    ->whereHas('stocks', fn($q) => $q->where('branch_id', $branchId))
+    ->count();
+
+// Count services (via ServiceBranches)
+$serviceCount = Product::where('type', 'service')
+    ->whereHas('serviceBranches', fn($q) => $q->where('branch_id', $branchId))
+    ->count();
+
+// Total
+$products = $productCount + $serviceCount;
         // recent sales
        
-        $RecentSales = Sale::where('branch_id',Auth::user()->branch_id)->with(['items','user'])
-            ->latest() // orders by created_at DESC
-            ->take(5)
-            ->get();
+        $RecentSales = Sale::where('branch_id', current_branch()->id)->with(['items','user'])->latest()->take(5)->get();
         // dd($RecentSales);
    
 

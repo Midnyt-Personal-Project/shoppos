@@ -229,6 +229,13 @@
                                 </svg>
                                 COLLECT PAYMENT
                             </button>
+                            <!-- Payment reference (only for mobile money & card) -->
+                            <div id="paymentReferenceContainer" class="hidden">
+                                <label class="text-slate-400 text-xs mb-1 block">Reference Number (Transaction ID)</label>
+                                <input type="text" id="paymentReference" class="input w-full"
+                                    placeholder="e.g., MoMo transaction ID / bank reference">
+                            </div>
+
                             <div class="flex gap-3">
                                 <button id="receiptButton" class="btn-secondary flex-1 justify-center gap-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,26 +262,27 @@
 
         <!-- Sale Complete Modal -->
         <div id="saleCompleteModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
-    <div class="card w-96 p-8 text-center">
-        <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+            <div class="card w-96 p-8 text-center">
+                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="text-white text-xl font-bold mb-1">Sale Complete!</h2>
+                <p class="text-slate-400 text-sm mb-1" id="completedRef"></p>
+                <div id="changeDisplay" class="bg-green-500/10 rounded-xl p-4 my-4 hidden">
+                    <p class="text-slate-400 text-xs">Change to give</p>
+                    <p class="text-green-400 text-3xl font-bold" id="changeAmount"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-6">
+                    <button id="printReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">🖨️ Print</button>
+                    <button id="whatsappReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">📱
+                        WhatsApp</button>
+                    <button id="emailReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">✉️ Email</button>
+                    <button onclick="newSale()" class="btn-primary justify-center py-2.5 text-sm">New Sale →</button>
+                </div>
+            </div>
         </div>
-        <h2 class="text-white text-xl font-bold mb-1">Sale Complete!</h2>
-        <p class="text-slate-400 text-sm mb-1" id="completedRef"></p>
-        <div id="changeDisplay" class="bg-green-500/10 rounded-xl p-4 my-4 hidden">
-            <p class="text-slate-400 text-xs">Change to give</p>
-            <p class="text-green-400 text-3xl font-bold" id="changeAmount"></p>
-        </div>
-        <div class="grid grid-cols-2 gap-2 mt-6">
-            <button id="printReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">🖨️ Print</button>
-            <button id="whatsappReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">📱 WhatsApp</button>
-            <button id="emailReceiptBtn" class="btn-secondary justify-center py-2.5 text-sm">✉️ Email</button>
-            <button onclick="newSale()" class="btn-primary justify-center py-2.5 text-sm">New Sale →</button>
-        </div>
-    </div>
-</div>
 
         <!-- Add Customer Modal -->
         <div id="customerModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
@@ -356,52 +364,53 @@
         }
 
         // Helper: fetch sale data and generate plain text receipt
-async function getSaleTextReceipt(saleId) {
-    const response = await fetch(`/sales/${saleId}/receipt-data`);
-    const sale = await response.json();
+        async function getSaleTextReceipt(saleId) {
+            const response = await fetch(`/sales/${saleId}/receipt-data`);
+            const sale = await response.json();
 
-    const shopName = sale.branch.shop.name;
-    const branchName = sale.branch.name;
-    const branchPhone = sale.branch.phone || '';
-    const currency = sale.branch.shop.currency_symbol;
-    const date = new Date(sale.created_at).toLocaleString();
-    const cashier = sale.user.name;
-    const customer = sale.customer ? sale.customer.name : 'Walk-in Customer';
-    const reference = sale.reference;
+            const shopName = sale.branch.shop.name;
+            const branchName = sale.branch.name;
+            const branchPhone = sale.branch.phone || '';
+            const currency = sale.branch.shop.currency_symbol;
+            const date = new Date(sale.created_at).toLocaleString();
+            const cashier = sale.user.name;
+            const customer = sale.customer ? sale.customer.name : 'Walk-in Customer';
+            const reference = sale.reference;
 
-    let itemsText = '';
-    if (sale.items && sale.items.forEach) {
-        sale.items.forEach(item => {
-            const lineTotal = (item.price * item.quantity) - (item.discount || 0);
-            itemsText += `${item.product_name} x${item.quantity} = ${currency}${lineTotal.toFixed(2)}\n`;
-            if (item.discount && item.discount > 0) {
-                itemsText += `  Discount: -${currency}${item.discount.toFixed(2)}\n`;
+            let itemsText = '';
+            if (sale.items && sale.items.forEach) {
+                sale.items.forEach(item => {
+                    const lineTotal = (item.price * item.quantity) - (item.discount || 0);
+                    itemsText +=
+                        `${item.product_name} x${item.quantity} = ${currency}${lineTotal.toFixed(2)}\n`;
+                    if (item.discount && item.discount > 0) {
+                        itemsText += `  Discount: -${currency}${item.discount.toFixed(2)}\n`;
+                    }
+                });
+            } else {
+                itemsText = 'No items\n';
             }
-        });
-    } else {
-        itemsText = 'No items\n';
-    }
 
-    let paymentsText = '';
-    if (sale.payments && sale.payments.forEach) {
-        sale.payments.forEach(payment => {
-            paymentsText += `${payment.method}: ${currency}${payment.amount.toFixed(2)}\n`;
-        });
-    } else {
-        paymentsText = 'No payments\n';
-    }
+            let paymentsText = '';
+            if (sale.payments && sale.payments.forEach) {
+                sale.payments.forEach(payment => {
+                    paymentsText += `${payment.method}: ${currency}${payment.amount.toFixed(2)}\n`;
+                });
+            } else {
+                paymentsText = 'No payments\n';
+            }
 
-    const subtotal = parseFloat(sale.subtotal) || 0;
-    const discount = parseFloat(sale.discount) || 0;
-    const taxTotal = parseFloat(sale.tax_total) || 0;
-    const total = parseFloat(sale.total) || 0;
+            const subtotal = parseFloat(sale.subtotal) || 0;
+            const discount = parseFloat(sale.discount) || 0;
+            const taxTotal = parseFloat(sale.tax_total) || 0;
+            const total = parseFloat(sale.total) || 0;
 
-    let taxText = '';
-    if (taxTotal > 0) {
-        taxText = `Tax: ${currency}${taxTotal.toFixed(2)}\n`;
-    }
+            let taxText = '';
+            if (taxTotal > 0) {
+                taxText = `Tax: ${currency}${taxTotal.toFixed(2)}\n`;
+            }
 
-    let receiptText = `
+            let receiptText = `
 *${shopName}*
 ${branchName}
 ${branchPhone}
@@ -424,25 +433,25 @@ ${branchPhone}
 |Thank you! Come again.
 --------------------------------
     `;
-    return receiptText;
-}
+            return receiptText;
+        }
 
-// WhatsApp button
-document.getElementById('whatsappReceiptBtn').addEventListener('click', async () => {
-    if (!lastSaleId) return;
-    const text = await getSaleTextReceipt(lastSaleId);
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
-});
+        // WhatsApp button
+        document.getElementById('whatsappReceiptBtn').addEventListener('click', async () => {
+            if (!lastSaleId) return;
+            const text = await getSaleTextReceipt(lastSaleId);
+            const encodedText = encodeURIComponent(text);
+            window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+        });
 
-// Email button
-document.getElementById('emailReceiptBtn').addEventListener('click', async () => {
-    if (!lastSaleId) return;
-    const text = await getSaleTextReceipt(lastSaleId);
-    const subject = encodeURIComponent(`Receipt for Sale ${lastSaleId}`);
-    const body = encodeURIComponent(text);
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-});
+        // Email button
+        document.getElementById('emailReceiptBtn').addEventListener('click', async () => {
+            if (!lastSaleId) return;
+            const text = await getSaleTextReceipt(lastSaleId);
+            const subject = encodeURIComponent(`Receipt for Sale ${lastSaleId}`);
+            const body = encodeURIComponent(text);
+            window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+        });
 
         function imgError(el) {
             el.onerror = null;
@@ -485,7 +494,7 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
             }
             // For products
             var currentStock = product.stock;
-            if (currentStock <= 0) {
+            if (currentStock !== null && currentStock <= 0) {
                 alert('"' + product.name + '" is out of stock.');
                 return;
             }
@@ -761,6 +770,7 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
                 grid.innerHTML = '<div class="col-span-full text-center text-slate-600 py-16">No products found</div>';
                 return;
             }
+
             grid.innerHTML = list.map(p => {
                 var badge = '';
                 if (p.type === 'service') {
@@ -769,7 +779,7 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
                 } else if (p.stock <= 0) {
                     badge =
                         '<div class="absolute inset-0 bg-black/60 flex items-center justify-center"><span class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded">Out of Stock</span></div>';
-                } else if (p.stock <= 5) {
+                } else if (p.stock <= p.low_stock_threshold) {
                     badge =
                         `<div class="absolute bottom-1 right-1 bg-amber-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Low: ${p.stock}</div>`;
                 }
@@ -816,14 +826,21 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
 
         function setPaymentMethod(method) {
             paymentMethod = method;
-            ['cash', 'mobile_money', 'card'].forEach(m => {
-                var el = document.getElementById('pm-' + m);
-                if (el) {
-                    el.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all ' + (m ===
-                        method ? 'bg-brand-600 text-white border-brand-600' :
+            document.querySelectorAll('.pay-method').forEach(btn => {
+                const isActive = btn.id === `pm-${method}`;
+                btn.className = 'pay-method py-2 rounded-lg text-xs font-medium border transition-all ' +
+                    (isActive ? 'bg-brand-600 text-white border-brand-600' :
                         'bg-slate-800 text-slate-400 border-slate-700');
-                }
             });
+
+            // Show reference input only for non-cash methods
+            const refContainer = document.getElementById('paymentReferenceContainer');
+            if (method === 'mobile_money' || method === 'card') {
+                refContainer.classList.remove('hidden');
+            } else {
+                refContainer.classList.add('hidden');
+                document.getElementById('paymentReference').value = ''; // clear
+            }
         }
 
         // Checkout
@@ -864,7 +881,7 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
             var customerId = document.getElementById('customerSelect').value || null;
             var amountPaid = parseFloat(document.getElementById('amountPaidInput').value || 0);
             var grandTotal = t.grandTotal;
-
+            var paymentReference = document.getElementById('paymentReference').value.trim();
             if (customerId === null && amountPaid < grandTotal - 0.01) {
                 alert('Walk-in customers must pay the full amount.');
                 btn.disabled = false;
@@ -872,13 +889,16 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
                 return;
             }
             if (isNaN(amountPaid)) amountPaid = 0;
-
+            var payment = {
+                method: paymentMethod,
+                amount: amountPaid
+            };
+            if (paymentMethod !== 'cash' && paymentReference) {
+                payment.reference = paymentReference;
+            }
             var payload = {
                 items: validItems,
-                payments: [{
-                    method: paymentMethod,
-                    amount: amountPaid
-                }],
+                payments: [payment],
                 discount: t.discount,
                 tax: 0,
                 customer_id: customerId,
@@ -1107,7 +1127,5 @@ document.getElementById('emailReceiptBtn').addEventListener('click', async () =>
         loadCart();
         document.getElementById('searchInput').focus();
         updateCustomerBalance();
-
-        
     </script>
 @endpush

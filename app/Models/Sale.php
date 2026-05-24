@@ -5,6 +5,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+
 use App\{Syncable, SyncableFile};
 
 class Sale extends Model
@@ -39,15 +40,25 @@ protected $fillable = [
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    public static function generateReference(int $branchId): string
-    {
-        $date  = now()->format('Ymd');
-        $count = static::whereDate('created_at', today())
-                       ->where('branch_id', $branchId)
-                       ->count() + 1;
-
-        return sprintf('SALE-%s-%04d', $date, $count);
+    public static function generateReference($branchId)
+{
+    $date = now()->format('Ymd');
+    $prefix = "SALE-{$branchId}-{$date}";
+    
+    // Get the last reference for this branch and today
+    $lastSale = self::where('reference', 'like', $prefix . '-%')
+                    ->orderBy('id', 'desc')
+                    ->first();
+    
+    if ($lastSale) {
+        $lastNumber = (int) substr($lastSale->reference, -4);
+        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+    } else {
+        $newNumber = '0001';
     }
+    
+    return $prefix . '-' . $newNumber;
+}
 
     public function profit(): float
     {

@@ -43,6 +43,17 @@
                 <span class="text-slate-400 text-sm">{{ $pay->methodLabel() }}</span>
                 <span class="text-white text-sm font-medium">₵{{ number_format($pay->amount, 2) }}</span>
             </div>
+            @if ( $pay->methodLabel() === 'Mobile Money' )
+            <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400 text-sm">Mobile Money Number</span>
+                <span class="text-white text-sm font-medium">{{ $pay->reference ?? 'N/A' }}</span>
+            </div>
+            @elseif ($pay->methodLabel() === 'Card')
+            <div class="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span class="text-slate-400 text-sm">Cheque Number</span>
+                <span class="text-white text-sm font-medium">{{ $pay->reference ?? 'N/A' }}</span>
+            </div>
+            @endif
             @endforeach
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">Total</span>

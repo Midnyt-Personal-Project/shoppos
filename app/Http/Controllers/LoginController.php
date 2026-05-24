@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityLog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\{Auth, Log};
+
+use App\Models\ActivityLog;
 
 class LoginController extends Controller
 {
@@ -17,6 +18,7 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        Log::info($request);
         $credentials = $request->validate([
             'email'    => 'required|email',
             'password' => 'required',

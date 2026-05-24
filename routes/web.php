@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\{Route, Schedule};
 
-use App\Http\Controllers\{BranchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
+use App\Http\Controllers\{BranchController, BranchSwitchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
 use Native\Desktop\Facades\AutoUpdater;
 
 
@@ -12,6 +12,19 @@ Route::get('/documentation', function () {
     return view('about.index');
 })->name('documentation');
 
+Route::get('/test-branch', function () {
+    if (!auth()->check()) {
+        return 'Not logged in';
+    }
+    return [
+        'logged_in_user' => auth()->user()->name,
+        'role' => auth()->user()->role,
+        'session_branch_id' => session('current_branch_id'),
+        'current_branch()' => current_branch()?->name,
+        'user_own_branch_id' => auth()->user()->branch_id,
+        'all_branches_in_shop' => auth()->user()->shop->branches->map(fn($b) => ['id' => $b->id, 'name' => $b->name]),
+    ];
+})->middleware('auth');
 
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -68,6 +81,8 @@ Route::middleware(['auth', 'role'])->group(function () {
         Route::post('products/import', [ProductImportController::class, 'import'])->name('products.import.store');
         Route::get('/products/import/template', [ProductController::class, 'downloadTemplate'])->name('products.import.template');
     });
+
+    //
 
     // ── Sales ─────────────────────────────────────────────────────────────────
     Route::prefix('sales')->name('sales.')->group(function () {
@@ -133,6 +148,7 @@ Route::middleware(['auth', 'role'])->group(function () {
     // ── Branches (admin only) ─────────────────────────────────────────────────
     Route::middleware('role:owner,admin')->group(function () {
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update']);
+        Route::post('/branch/switch', [BranchSwitchController::class, 'switch'])->name('branch.switch');
     });
 
     // ── Settings (owner/admin only) ───────────────────────────────────────────

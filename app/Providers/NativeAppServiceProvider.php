@@ -34,11 +34,11 @@ class NativeAppServiceProvider implements ProvidesPhpIni
     //  Window::onReady(function () {
 
     //     // ✅ Start your external API properly (use router.php)
-        ChildProcess::start(
-            cmd: 'php -S 127.0.0.1:9001 router.php',
-            alias: 'external-api',
-            persistent: true
-        );
+        // ChildProcess::start(
+        //     cmd: 'php -S 127.0.0.1:9001 external-api-server.php',
+        //     alias: 'external-api',
+        //     persistent: true
+        // );
 
     //     // ✅ Safe updater check (NO quitAndInstall here)
     //     AutoUpdater::checkForUpdates();

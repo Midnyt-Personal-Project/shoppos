@@ -5,14 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-use App\Models\{Expense, Sale, SaleItem};
+use App\Models\{BranchStock, Expense, Sale, SaleItem};
 
 class ReportController extends Controller
 {
     public function sales(Request $request)
     {
         $user     = auth()->user();
-        $branchId = $user->branch_id;
+        $branchId =  current_branch()->id;
         $from     = $request->date_from ?? now()->startOfMonth()->toDateString();
         $to       = $request->date_to   ?? now()->toDateString();
 
@@ -78,18 +78,27 @@ class ReportController extends Controller
     public function stock(Request $request)
     {
         $user     = auth()->user();
-        $branchId = $user->branch_id;
+        $branchId = current_branch()->id;
+    
 
         $stocks = \App\Models\BranchStock::with('product')
-            ->where('branch_id', $branchId)
-            ->when($request->filled('search'), fn($q) =>
-                $q->whereHas('product', fn($q2) => $q2->where('name', 'like', '%'.$request->search.'%'))
-            )
-            ->when($request->filter === 'low', fn($q) =>
-                $q->whereColumn('quantity', '<=', 'low_stock_alert')
-            )
-            ->when($request->filter === 'out', fn($q) => $q->where('quantity', '<=', 0))
-            ->paginate(20)->withQueryString();
+    ->where('branch_id', $branchId)
+    ->whereHas('product')   // 👈 add this line
+    ->when($request->filled('search'), fn($q) =>
+        $q->whereHas('product', fn($q2) =>
+            $q2->whereRaw('COALESCE(name, "") LIKE ?', ['%' . $request->search . '%'])
+        )
+    )
+    ->when($request->filter === 'low', fn($q) =>
+        $q->whereColumn('quantity', '<=', 'low_stock_alert')
+    )
+    ->when($request->filter === 'out', fn($q) =>
+        $q->where('quantity', '<=', 0)
+    )
+    ->paginate(20)->withQueryString();
+
+    
+
 
         $stockValue = \App\Models\BranchStock::where('branch_id', $branchId)
             ->join('products', 'products.id', '=', 'branch_stocks.product_id')
