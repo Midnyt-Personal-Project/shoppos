@@ -27,7 +27,7 @@ class LicenseMiddleware
         // Always allow: login, logout, setup, license activation routes
         $bypassed = [
             'login', 'logout', 'setup.*', 'setup.check', 'setup.store',
-            'license.*',
+            'license.*', 'settings.*',
         ];
 
         foreach ($bypassed as $pattern) {

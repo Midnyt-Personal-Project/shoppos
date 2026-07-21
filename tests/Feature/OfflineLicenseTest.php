@@ -38,6 +38,24 @@ test('it blocks access and redirects to license index if offline mode is active 
     $response->assertSessionHas('warning');
 });
 
+test('it allows access to settings routes even if offline mode is active and current month/year is not allowed', function () {
+    putenv('Mode=offline');
+    $_ENV['Mode'] = 'offline';
+
+    // Explicitly configure allowed months and years to exclude current year
+    $currentYear = (string) date('Y');
+    $wrongYear = (string) ($currentYear - 1);
+
+    ShopSetting::set($this->owner->shop_id, 'offline_allowed_years', [$wrongYear], 'json');
+    ShopSetting::set($this->owner->shop_id, 'offline_allowed_months', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 'json');
+
+    // Try to access settings index page as authenticated user
+    $response = actingAs($this->owner)->get(route('settings.index'));
+
+    // Should be successful (status 200) instead of redirecting
+    $response->assertStatus(200);
+});
+
 test('it allows access if offline mode is active and current month/year is allowed', function () {
     // Set environment variable Mode to offline
     putenv('Mode=offline');
