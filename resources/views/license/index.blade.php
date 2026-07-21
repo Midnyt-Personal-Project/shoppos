@@ -5,6 +5,66 @@
 @section('content')
 <div class="max-w-2xl space-y-6">
 
+    @if($status['is_offline'] ?? false)
+    <div class="card p-6" style="border-color:{{ $status['status'] === 'active' ? 'rgba(22,163,74,.3)' : 'rgba(220,38,38,.3)' }}">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                 style="background:{{ $status['status'] === 'active' ? 'rgba(22,163,74,.15)' : 'rgba(220,38,38,.15)' }}">
+                @if($status['status'] === 'active')
+                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                @else
+                <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                @endif
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h2 class="text-white font-semibold text-lg">
+                        {{ $status['status'] === 'active' ? 'Offline License Active' : 'Offline License Expired' }}
+                    </h2>
+                    <span class="badge {{ $status['status'] === 'active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20' }}">
+                        Offline Mode
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <p class="text-slate-500 text-xs">Current Period</p>
+                        <p class="text-white font-medium mt-0.5">
+                            {{ date('F Y') }} (Month: {{ $status['current_month'] }}, Year: {{ $status['current_year'] }})
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-xs">Status</p>
+                        <p class="font-bold mt-0.5 text-lg {{ $status['status'] === 'active' ? 'text-green-400' : 'text-red-400' }}">
+                            {{ $status['status'] === 'active' ? 'Authorized' : 'Unauthorized / Locked' }}
+                        </p>
+                    </div>
+                </div>
+
+                @if($status['status'] !== 'active')
+                <div class="mt-4 flex items-center gap-3 px-4 py-3 rounded-xl"
+                     style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25)">
+                    <p class="text-red-300 text-sm">
+                        This system is not authorized to run in {{ date('F Y') }}. Please contact your administrator or go to Settings to adjust the allowed period.
+                    </p>
+                </div>
+                @endif
+
+                @if(auth()->user() && in_array(auth()->user()->role, ['owner', 'admin']))
+                <div class="mt-4">
+                    <a href="{{ route('settings.index') }}" class="btn-primary text-xs py-2 px-4 inline-block">
+                        ⚙️ Go to Settings to Unlock
+                    </a>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    @else
     {{-- ── Current status card ─────────────────────────────────────────── --}}
     @if($status['status'] === 'active')
     <div class="card p-6" style="border-color:rgba(22,163,74,.3)">
@@ -184,6 +244,7 @@
             <p>4. Enter the key in the box above — it looks like: <span class="font-mono text-slate-400">OMNI-XXXX-XXXX-XXXX-XXXX</span></p>
         </div>
     </div>
+    @endif
 
 </div>
 @endsection

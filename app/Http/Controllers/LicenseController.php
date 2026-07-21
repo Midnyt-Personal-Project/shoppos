@@ -15,6 +15,48 @@ class LicenseController extends Controller
      */
     public function index()
     {
+        if (strtolower(env('Mode', '')) === 'offline') {
+            $shopId = auth()->user()->shop_id ?? 1;
+            $currentYear = (string) date('Y');
+            $currentMonth = (int) date('n');
+
+            $allowedYears = \App\Models\ShopSetting::get($shopId, 'offline_allowed_years');
+            $allowedMonths = \App\Models\ShopSetting::get($shopId, 'offline_allowed_months');
+
+            if (is_null($allowedYears)) {
+                $allowedYears = [$currentYear];
+            } else {
+                if (is_string($allowedYears)) {
+                    $allowedYears = array_filter(array_map('trim', explode(',', $allowedYears)));
+                }
+            }
+
+            if (is_null($allowedMonths)) {
+                $allowedMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            } else {
+                if (is_string($allowedMonths)) {
+                    $allowedMonths = array_filter(array_map('intval', explode(',', $allowedMonths)));
+                }
+            }
+
+            $allowedYears = array_map('strval', (array) $allowedYears);
+            $allowedMonths = array_map('intval', (array) $allowedMonths);
+
+            $yearAllowed = in_array($currentYear, $allowedYears, true);
+            $monthAllowed = in_array($currentMonth, $allowedMonths, true);
+
+            $status = [
+                'status' => ($yearAllowed && $monthAllowed) ? 'active' : 'expired',
+                'is_offline' => true,
+                'allowed_years' => $allowedYears,
+                'allowed_months' => $allowedMonths,
+                'current_year' => $currentYear,
+                'current_month' => $currentMonth,
+            ];
+
+            return view('license.index', compact('status'));
+        }
+
         $status  = $this->license->status();
         $details = $this->license->details();
         $buyUrl  = config('license.buy_url', '#');

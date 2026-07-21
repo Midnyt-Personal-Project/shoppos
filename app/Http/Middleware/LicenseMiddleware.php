@@ -20,6 +20,10 @@ class LicenseMiddleware
             'has_license'=> (bool)$this->license->details(),
         ]);
 
+        if (strtolower(env('Mode', '')) === 'offline') {
+            return app(\App\Http\Middleware\OfflineLicenseMiddleware::class)->handle($request, $next);
+        }
+
         // Always allow: login, logout, setup, license activation routes
         $bypassed = [
             'login', 'logout', 'setup.*', 'setup.check', 'setup.store',

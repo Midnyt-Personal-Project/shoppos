@@ -138,4 +138,50 @@ class SettingController extends Controller
 
         return redirect()->route('settings.index')->with('success', "Email config removed for {$branch->name}.");
     }
+
+    /** Verify offline settings access password */
+    public function verifyOfflinePassword(Request $request)
+    {
+        $password = $request->input('password');
+        $correctPassword = env('OFFLINE_PASSWORD', 'midnyt123456789');
+
+        if ($password === $correctPassword) {
+            session(['offline_unlocked' => true]);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid password.'
+        ], 422);
+    }
+
+    /** Lock the offline settings tab */
+    public function lockOffline()
+    {
+        session()->forget('offline_unlocked');
+        return redirect()->route('settings.index')->with('success', 'Offline settings locked.');
+    }
+
+    /** Save offline license allowed years and months */
+    public function saveOffline(Request $request)
+    {
+        if (strtolower(env('Mode', '')) !== 'offline') {
+            abort(403, 'Offline settings are only available in offline mode.');
+        }
+
+        if (!session('offline_unlocked')) {
+            abort(403, 'Offline settings tab is locked.');
+        }
+
+        $shopId = auth()->user()->shop_id;
+
+        $years = $request->input('allowed_years', []);
+        $months = $request->input('allowed_months', []);
+
+        ShopSetting::set($shopId, 'offline_allowed_years', $years, 'json');
+        ShopSetting::set($shopId, 'offline_allowed_months', $months, 'json');
+
+        return redirect()->route('settings.index')->with('success', 'Offline license settings saved.');
+    }
 }

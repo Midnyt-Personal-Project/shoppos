@@ -4,7 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Middleware\{LicenseMiddleware, RoleMiddleware, SetCurrentBranch};
+use App\Http\Middleware\{LicenseMiddleware, OfflineLicenseMiddleware, RoleMiddleware, SetCurrentBranch};
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
