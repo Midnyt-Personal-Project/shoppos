@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\{Route, Schedule};
 
-use App\Http\Controllers\{BranchController, BranchSwitchController, CustomerController, DashboardController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
+use App\Http\Controllers\{BranchController, BranchSwitchController, CustomerController, DashboardController, ExpenseCategoryController, ExpenseController, LicenseController, LoginController, PeerController, PosController, ProductController, ProductImportController, PurchaseOrderController, ReportController, SaleController, SettingController, SetupController, TaxRateController, UpdateHistoryController, UserController};
 use Native\Desktop\Facades\AutoUpdater;
 
 
@@ -32,8 +32,9 @@ Route::get('/test-branch', function () {
 Route::get('/setup/check', [SetupController::class, 'check'])->name('setup.check');
 Route::post('/setup',      [SetupController::class, 'store'])->name('setup.store');
 
+// 'throttle:1,1'
 
-Route::middleware('guest')->group(function () {
+Route::middleware(['guest'])->group(function () {
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
@@ -48,7 +49,7 @@ Route::middleware('auth')->group(function () {
 
 // ─── Authenticated ─────────────────────────────────────────────────────────────
 // Route::middleware(['auth', 'role', 'license'])->group(function () {
-Route::middleware(['auth', 'role'])->group(function () {
+Route::middleware(['auth', 'role',])->group(function () {
 
     Route::get('/settings/peers', [App\Http\Controllers\PeerController::class, 'index'])->name('settings.peers.index');
     Route::post('/settings/peers', [App\Http\Controllers\PeerController::class, 'store'])->name('settings.peers.store');
@@ -79,15 +80,19 @@ Route::middleware(['auth', 'role'])->group(function () {
         Route::post('products/{product}/remove-branch', [ProductController::class, 'removeBranch'])->name('products.removeBranch');
         Route::get('products/import', [App\Http\Controllers\ProductImportController::class, 'showForm'])->name('products.import.form');
         Route::post('products/import', [ProductImportController::class, 'import'])->name('products.import.store');
+        Route::get('/products/{product}/stock-logs', [ProductController::class, 'stockLogs'])->name('products.stock-logs');
+        Route::post('/products/{product}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust-stock');
         Route::get('/products/import/template', [ProductController::class, 'downloadTemplate'])->name('products.import.template');
     });
 
     //
-
     // ── Sales ─────────────────────────────────────────────────────────────────
     Route::prefix('sales')->name('sales.')->group(function () {
         Route::get('/',               [SaleController::class, 'index'])->name('index');
         Route::get('/{sale}',         [SaleController::class, 'show'])->name('show');
+        // routes/web.php
+        Route::post('/invoice-preview', [SaleController::class, 'invoicePreview'])->name('invoice-preview');
+        Route::post('/{sale}/email-receipt', [SaleController::class, 'emailReceipt'])->name('email-receipt');
         Route::get('/{sale}/receipt-data', [SaleController::class, 'receiptData'])->name('receipt-data');
         Route::get('/{sale}/refund',  [SaleController::class, 'refundView'])->name('refund')
             ->middleware('role:owner,admin,manager');
@@ -102,6 +107,8 @@ Route::middleware(['auth', 'role'])->group(function () {
         Route::post('/',                         [PurchaseOrderController::class, 'store'])->name('store');
         Route::get('/{purchaseOrder}',           [PurchaseOrderController::class, 'show'])->name('show');
         Route::get('/{purchaseOrder}/print',     [PurchaseOrderController::class, 'print'])->name('print');
+        Route::get('/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('edit');
+        Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('update');
 
         // Receive items (managers and above)
         Route::middleware('role:owner,admin,manager')->group(function () {
@@ -130,8 +137,14 @@ Route::middleware(['auth', 'role'])->group(function () {
     });
 
     // ── Expenses ──────────────────────────────────────────────────────────────
-    Route::middleware('role:owner,admin,manager')->group(function () {
+    Route::middleware('role:owner,admin,manager,cashier')->group(function () {
         Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
+        Route::resource('expense-categories', ExpenseCategoryController::class)->only(['index', 'store', 'destroy']);
+        Route::get('/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+        Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::resource('expenses', ExpenseController::class)->except(['edit', 'update']); // already have index, store, destroy
+        Route::get('/expenses/{expense}/download-receipt', [ExpenseController::class, 'downloadReceipt'])->name('expenses.download-receipt');
     });
 
     // ── Reports ───────────────────────────────────────────────────────────────

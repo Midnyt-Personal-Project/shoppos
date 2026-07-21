@@ -21,33 +21,6 @@
             to   { opacity:1; transform: scale(1)  translateY(0); }
         }
         [x-cloak] { display: none !important; }
-        /* Additional style for input fields to match dark theme */
-        .input {
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 0.75rem;
-            width: 100%;
-            transition: all 0.2s ease;
-            color: #f1f5f9;
-            font-size: 0.875rem;
-        }
-        .input:focus {
-            outline: none;
-            border-color: #16a34a;
-            box-shadow: 0 0 0 2px rgba(22,163,74,0.2);
-        }
-        .btn-secondary {
-            background-color: rgba(51, 65, 85, 0.5);
-            border: 1px solid #334155;
-            border-radius: 0.75rem;
-            color: #cbd5e1;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .btn-secondary:hover {
-            background-color: #334155;
-            color: white;
-        }
     </style>
 </head>
 <body class="h-full flex items-center justify-center grid-bg" style="background-color:#0f172a">
@@ -246,7 +219,7 @@
                                 </label>
                                 <input type="text" x-model="form.currency" required maxlength="10"
                                        class="input py-2.5 font-mono" placeholder="GHS">
-                                <p class="text-slate-500 text-xs mt-1">GHS, USD, NGN, KES…</p>
+                                <p class="text-slate-600 text-xs mt-1">GHS, USD, NGN, KES…</p>
                             </div>
                             <div>
                                 <label class="text-slate-400 text-xs font-medium mb-1.5 block">
@@ -254,7 +227,7 @@
                                 </label>
                                 <input type="text" x-model="form.currency_symbol" required maxlength="5"
                                        class="input py-2.5 font-mono text-xl text-center" placeholder="₵">
-                                <p class="text-slate-500 text-xs mt-1">₵, $, ₦, KSh…</p>
+                                <p class="text-slate-600 text-xs mt-1">₵, $, ₦, KSh…</p>
                             </div>
                         </div>
 
@@ -410,8 +383,6 @@
                 showPass: false,
                 errorMsg: '',
                 errors: {},
-                // Fixed: Added missing loginLoading property for the main login button
-                loginLoading: false,
 
                 form: {
                     shop_name: '',

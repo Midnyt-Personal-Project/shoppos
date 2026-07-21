@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use App\Models\PurchaseOrderItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+
+use App\Models\PurchaseOrderItem;
 
 class PurchaseOrder extends Model
 {
@@ -82,4 +83,9 @@ class PurchaseOrder extends Model
             $this->update(['status' => 'partial']);
         }
     }
+
+        public function isEditable(): bool
+{
+    return in_array($this->status, ['pending', 'rejected']);
+}
 }

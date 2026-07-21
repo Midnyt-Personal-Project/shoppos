@@ -41,34 +41,40 @@
             @foreach($sale->payments as $pay)
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">{{ $pay->methodLabel() }}</span>
-                <span class="text-white text-sm font-medium">₵{{ number_format($pay->amount, 2) }}</span>
+                <span class="text-white text-sm font-medium">₵{{ number_format($pay->amount, 2) }} </span>
+                <span class="text-slate-400 text-sm">({{ $pay->created_at->format('d M Y, H:i') }})</span>
             </div>
             @if ( $pay->methodLabel() === 'Mobile Money' )
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">Mobile Money Number</span>
                 <span class="text-white text-sm font-medium">{{ $pay->reference ?? 'N/A' }}</span>
+                  <span class="text-slate-400 text-sm">({{ $pay->created_at->format('d M Y, H:i') }})</span>
             </div>
             @elseif ($pay->methodLabel() === 'Card')
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">Cheque Number</span>
                 <span class="text-white text-sm font-medium">{{ $pay->reference ?? 'N/A' }}</span>
+                  <span class="text-slate-400 text-sm">({{ $pay->created_at->format('d M Y, H:i') }})</span>
             </div>
             @endif
             @endforeach
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">Total</span>
                 <span class="text-white font-bold">₵{{ number_format($sale->total, 2) }}</span>
+
             </div>
             @if($sale->change > 0)
             <div class="flex justify-between py-1.5 border-b border-slate-800/60">
                 <span class="text-slate-400 text-sm">Change Given</span>
                 <span class="text-green-400 text-sm">₵{{ number_format($sale->change, 2) }}</span>
+
             </div>
             @endif
             @if($sale->balance_due > 0)
             <div class="flex justify-between py-1.5">
                 <span class="text-red-400 text-sm font-medium">Balance Due</span>
-                <span class="text-red-400 font-bold">₵{{ number_format($sale->balance_due, 2) }}</span>
+                <span class="text-red-400 font-bold">₵{{ number_format($sale->balance_due, 2) }}</span>  
+
             </div>
             @endif
         </div>

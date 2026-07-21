@@ -7,7 +7,10 @@
     restockModal:  false,
     transferModal: false,
     removeModal:   false,
+    stockLogModal: false,
+    adjustModal:   false,
     activeProduct: null,
+    activeProductId: null,
     activeProductName: '',
     restockBranch: '',
     restockQty:    1,
@@ -16,7 +19,14 @@
     transferQty:   1,
     transferNotes: '',
     removeBranch:  '',
+    adjustBranch:  '',
+    adjustQty:     1,
+    adjustType:    'add', // 'add' or 'subtract'
+    adjustNotes:   '',
     processing:    false,
+    stockLogs:     { data: [] },
+    logFilter:     { from: '', to: '' },
+    productBranches: [], // will be filled when opening adjust modal
 
     openRestock(productId, productName, defaultBranch) {
         this.activeProduct      = productId;
@@ -40,7 +50,42 @@
         this.removeBranch       = branchId;
         this.removeModal        = true;
     },
-
+    openStockLog(productId, productName) {
+        this.activeProductId    = productId;
+        this.activeProductName  = productName;
+        this.logFilter.from     = '';
+        this.logFilter.to       = '';
+        this.stockLogModal      = true;
+        this.fetchStockLogs();
+    },
+    openAdjust(productId, productName) {
+        this.activeProductId    = productId;
+        this.activeProductName  = productName;
+        this.adjustBranch       = '';
+        this.adjustQty          = 1;
+        this.adjustType         = 'add';
+        this.adjustNotes        = '';
+        this.adjustModal        = true;
+        // Fetch current branches for this product to show summary
+        this.fetchProductBranches();
+    },
+    async fetchProductBranches() {
+        if (!this.activeProductId) return;
+        const res = await fetch(`/products/${this.activeProductId}/branches`);
+        const data = await res.json();
+        this.productBranches = data;
+    },
+    async fetchStockLogs(page = 1) {
+        if (!this.activeProductId) return;
+        const params = new URLSearchParams({
+            page: page,
+            from: this.logFilter.from,
+            to: this.logFilter.to,
+        });
+        const res = await fetch(`/products/${this.activeProductId}/stock-logs?${params}`);
+        const data = await res.json();
+        this.stockLogs = data;
+    },
     async doRestock() {
         if (!this.restockBranch || this.restockQty <= 0) return;
         this.processing = true;
@@ -54,7 +99,6 @@
         if (d.success) { this.restockModal = false; location.reload(); }
         else alert(d.message);
     },
-
     async doTransfer() {
         if (!this.fromBranch || !this.toBranch || this.fromBranch === this.toBranch) {
             alert('Please select two different branches.'); return;
@@ -70,7 +114,6 @@
         if (d.success) { this.transferModal = false; location.reload(); }
         else alert(d.message);
     },
-
     async doRemove() {
         this.processing = true;
         const res = await fetch('/products/' + this.activeProduct + '/remove-branch', {
@@ -83,26 +126,44 @@
         if (d.success) { this.removeModal = false; location.reload(); }
         else alert(d.message);
     },
+    async doAdjust() {
+        if (!this.adjustBranch || this.adjustQty <= 0) return;
+        this.processing = true;
+        const res = await fetch('/products/' + this.activeProductId + '/adjust-stock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+            body: JSON.stringify({
+                branch_id: this.adjustBranch,
+                quantity: this.adjustQty,
+                type: this.adjustType,
+                notes: this.adjustNotes,
+            }),
+        });
+        const d = await res.json();
+        this.processing = false;
+        if (d.success) { this.adjustModal = false; location.reload(); }
+        else alert(d.message);
+    },
 }">
 
     {{-- Header --}}
     <div class="flex items-center justify-between flex-wrap gap-3">
-    <p class="text-slate-400 text-sm">Manage products and branch stock levels</p>
-    <div class="flex gap-2">
-        <a href="{{ route('products.import.form') }}" class="btn-secondary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            Import Excel
-        </a>
-        <a href="{{ route('products.create') }}" class="btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Add Product
-        </a>
+        <p class="text-slate-400 text-sm">Manage products and branch stock levels</p>
+        <div class="flex gap-2">
+            <a href="{{ route('products.import.form') }}" class="btn-secondary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Import Excel
+            </a>
+            <a href="{{ route('products.create') }}" class="btn-primary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Product
+            </a>
+        </div>
     </div>
-</div>
 
     {{-- Filters --}}
     <form method="GET" class="flex flex-wrap gap-3">
@@ -157,8 +218,8 @@
 
                     {{-- Price --}}
                     <td class="px-3 py-4 text-right">
-                        <div class="text-green-400 font-medium">₵{{ number_format($product->price, 2) }}</div>
-                        <div class="text-slate-600 text-xs">cost ₵{{ number_format($product->cost, 2) }}</div>
+                        <div class="text-green-400 font-medium">{{ auth()->user()->shop->currency_symbol }}{{ number_format($product->price, 2) }}</div>
+                        <div class="text-slate-600 text-xs">cost {{ auth()->user()->shop->currency_symbol }}{{ number_format($product->cost, 2) }}</div>
                     </td>
 
                     {{-- Branch stock breakdown --}}
@@ -224,6 +285,22 @@
                                 class="px-2.5 py-1.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-colors font-medium"
                                 title="Add stock">
                                 + Stock
+                            </button>
+
+                            {{-- Adjust (Found/Missing) --}}
+                            <button
+                                @click="openAdjust({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                class="px-2.5 py-1.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 rounded-lg transition-colors font-medium"
+                                title="Adjust stock (found/missing)">
+                                📊 Adjust
+                            </button>
+
+                            {{-- Stock Log --}}
+                            <button
+                                @click="openStockLog({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                class="px-2.5 py-1.5 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 rounded-lg transition-colors font-medium"
+                                title="View stock history">
+                                📊 Log
                             </button>
 
                             {{-- Transfer (only admins/owners with multiple branches) --}}
@@ -371,6 +448,170 @@
                 <button @click="removeModal = false" class="btn-secondary flex-1">Cancel</button>
                 <button @click="doRemove()" :disabled="processing"
                         class="btn-danger flex-1" x-text="processing ? 'Removing…' : 'Yes, Remove'"></button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Stock Log Modal ─────────────────────────────────────────────── --}}
+    <div x-show="stockLogModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div class="card w-full max-w-4xl max-h-[90vh] flex flex-col" @click.outside="stockLogModal = false">
+            <div class="flex justify-between items-center p-4 border-b border-surface-border">
+                <div>
+                    <h3 class="text-white font-semibold">Stock Log</h3>
+                    <p class="text-slate-500 text-xs" x-text="activeProductName"></p>
+                </div>
+                <button @click="stockLogModal = false" class="text-slate-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Filters --}}
+            <div class="p-4 border-b border-surface-border flex flex-wrap gap-3 items-end">
+                <div>
+                    <label class="text-slate-400 text-xs block">From Date</label>
+                    <input type="date" x-model="logFilter.from" class="input">
+                </div>
+                <div>
+                    <label class="text-slate-400 text-xs block">To Date</label>
+                    <input type="date" x-model="logFilter.to" class="input">
+                </div>
+                <button @click="fetchStockLogs()" class="btn-secondary">Apply Filter</button>
+                <button @click="logFilter.from=''; logFilter.to=''; fetchStockLogs()" class="btn-secondary">Clear</button>
+            </div>
+
+            {{-- Table --}}
+            <div class="flex-1 overflow-y-auto p-4">
+                <template x-if="stockLogs.data && stockLogs.data.length > 0">
+                    <div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-500 text-xs uppercase">
+                                    <th class="text-left px-3 py-2">Date</th>
+                                    <th class="text-left px-3 py-2">Branch</th>
+                                    <th class="text-left px-3 py-2">Type</th>
+                                    <th class="text-right px-3 py-2">Qty</th>
+                                    <th class="text-right px-3 py-2">Before</th>
+                                    <th class="text-right px-3 py-2">After</th>
+                                    <th class="text-left px-3 py-2">Reference / Notes</th>
+                                    <th class="text-left px-3 py-2">User</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                <template x-for="log in stockLogs.data" :key="log.id">
+                                    <tr>
+                                        <td class="px-3 py-2 text-slate-400" x-text="new Date(log.created_at).toLocaleString()"></td>
+                                        <td class="px-3 py-2" x-text="log.branch ? log.branch.name : '—'"></td>
+                                        <td class="px-3 py-2">
+                                            <span x-text="log.type" class="px-2 py-0.5 rounded text-xs"
+                                                :class="{
+                                                    'bg-green-500/10 text-green-400': ['restock','transfer_in','adjustment_add'].includes(log.type),
+                                                    'bg-red-500/10 text-red-400': ['sale','transfer_out','adjustment_subtract'].includes(log.type)
+                                                }">
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 text-right" x-text="log.quantity"></td>
+                                        <td class="px-3 py-2 text-right" x-text="log.before_quantity"></td>
+                                        <td class="px-3 py-2 text-right" x-text="log.after_quantity"></td>
+                                        <td class="px-3 py-2 text-slate-400" x-text="log.reference || log.notes || '—'"></td>
+                                        <td class="px-3 py-2 text-slate-400" x-text="log.user ? log.user.name : '—'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-slate-500 text-sm" x-text="'Showing ' + stockLogs.from + ' - ' + stockLogs.to + ' of ' + stockLogs.total"></span>
+                            <div class="flex gap-2">
+                                <button @click="fetchStockLogs(stockLogs.current_page - 1)" :disabled="!stockLogs.prev_page_url"
+                                        class="btn-secondary text-sm" :class="{'opacity-50': !stockLogs.prev_page_url}">Previous</button>
+                                <button @click="fetchStockLogs(stockLogs.current_page + 1)" :disabled="!stockLogs.next_page_url"
+                                        class="btn-secondary text-sm" :class="{'opacity-50': !stockLogs.next_page_url}">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="!stockLogs.data || stockLogs.data.length === 0">
+                    <div class="text-center text-slate-500 py-12">No stock movements found for this product.</div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Adjust Stock Modal ──────────────────────────────────────────── --}}
+    <div x-show="adjustModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div class="card w-full max-w-2xl max-h-[90vh] flex flex-col" @click.outside="adjustModal = false">
+            <div class="flex justify-between items-center p-4 border-b border-surface-border">
+                <div>
+                    <h3 class="text-white font-semibold">Stock Adjustment</h3>
+                    <p class="text-slate-500 text-xs" x-text="activeProductName"></p>
+                </div>
+                <button @click="adjustModal = false" class="text-slate-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Summary of current stock --}}
+            <div class="p-4 border-b border-surface-border">
+                <h4 class="text-slate-400 text-xs uppercase tracking-wider mb-2">Current Stock Summary</h4>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <template x-for="branch in productBranches" :key="branch.id">
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="text-slate-400 text-xs" x-text="branch.name"></div>
+                            <div class="text-white font-bold text-lg" x-text="branch.quantity + ' ' + (branch.unit || '')"></div>
+                            <div class="text-xs" :class="branch.quantity <= 0 ? 'text-red-400' : (branch.quantity <= branch.low_stock_alert ? 'text-amber-400' : 'text-green-400')"
+                                 x-text="branch.quantity <= 0 ? 'Out of stock' : (branch.quantity <= branch.low_stock_alert ? 'Low stock' : 'In stock')"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Adjustment form --}}
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Branch *</label>
+                    <select x-model="adjustBranch" class="input">
+                        <option value="">— Select Branch —</option>
+                        <template x-for="branch in productBranches" :key="branch.id">
+                            <option :value="branch.id" x-text="branch.name + ' (Current: ' + branch.quantity + ')'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Adjustment Type</label>
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" x-model="adjustType" value="add" class="rounded border-slate-700 bg-slate-800 text-green-500">
+                            <span class="text-green-400 text-sm">➕ Add Stock</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" x-model="adjustType" value="subtract" class="rounded border-slate-700 bg-slate-800 text-red-500">
+                            <span class="text-red-400 text-sm">➖ Remove Stock</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Quantity *</label>
+                    <input type="number" x-model.number="adjustQty" min="0.01" step="0.01" class="input">
+                </div>
+
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Reason / Notes</label>
+                    <input type="text" x-model="adjustNotes" class="input" placeholder="e.g. Found 5 extra, Missing 2, Damaged, etc.">
+                    <p class="text-slate-500 text-xs mt-1">Use this to record why you're adjusting stock (e.g., "found items", "missing", "damaged").</p>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button @click="adjustModal = false" class="btn-secondary flex-1">Cancel</button>
+                    <button @click="doAdjust()" :disabled="processing"
+                            class="btn-primary flex-1" x-text="processing ? 'Saving…' : 'Apply Adjustment'"></button>
+                </div>
             </div>
         </div>
     </div>

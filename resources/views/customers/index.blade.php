@@ -81,6 +81,8 @@
                             class="input"></div>
                     <div><label class="text-slate-400 text-xs mb-1 block">Email</label><input type="email" name="email"
                             class="input"></div>
+                    <div><label class="text-slate-400 text-xs mb-1 block">Address</label><input type="text" name="address"
+                            class="input"></div>
                     <div><label class="text-slate-400 text-xs mb-1 block">Credit Limit (₵)</label><input type="number"
                             name="credit_limit" value="0" step="0.01" class="input"></div>
                     <div class="flex gap-3 mt-4">

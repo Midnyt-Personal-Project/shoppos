@@ -59,15 +59,20 @@ class CustomerController extends Controller
             'max:255',
             Rule::unique('customers')->where(fn($q) => $q->where('shop_id', auth()->user()->shop_id))
         ],
+        'address'      => 'nullable|string|max:500',
+        'credit_limit' => 'nullable|numeric|min:0',
     ]);
+    $creditLimit = $request->filled('credit_limit') ? $request->credit_limit : 0;
 
     $customer = Customer::create([
         'shop_id'             => auth()->user()->shop_id,
         'name'                => $request->name,
         'phone'               => $request->phone,
         'branch_id' => current_branch()->id, 
+        'address'             => $request->address,
         'email'               => $request->email,
         'outstanding_balance' => 0,
+        'credit_limit' => $creditLimit,
     ]);
 
     // If the request expects JSON (e.g., from POS frontend), return JSON
@@ -197,6 +202,7 @@ public function update(Request $request, Customer $customer)
         'address'      => 'nullable|string|max:500',
         'credit_limit' => 'nullable|numeric|min:0',
     ]);
+    $data['credit_limit'] = $data['credit_limit'] ?? 0;
 
     $customer->update($data);
 

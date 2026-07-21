@@ -21,8 +21,8 @@
                             class="input font-mono">
                     </div>
                     <div>
-                        <label class="text-slate-400 text-xs mb-1 block">SKU</label>
-                        <input type="text" name="sku" value="{{ old('sku', $product->sku) }}" class="input">
+                        <label class="text-slate-400 text-xs mb-1 block ">SKU</label>
+                        <input type="text" name="sku" disabled  value="{{ old('sku', $product->sku) }}" class="input">
                     </div>
                     <div>
                         <label class="text-slate-400 text-xs mb-1 block">Category</label>

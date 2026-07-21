@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
-use App\Models\Sale;
+use App\Mail\ReceiptMail;
+use App\Models\{Customer, Sale};
 
 class SaleController extends Controller
 {
@@ -53,6 +55,65 @@ class SaleController extends Controller
 {
     $sale->load(['items.product', 'payments', 'customer', 'user', 'branch.shop']);
     return response()->json($sale);
+}
+
+public function emailReceipt(Request $request, Sale $sale)
+{
+    $request->validate([
+        'email' => 'nullable|email',
+    ]);
+
+    $email = $request->email ?? $sale->customer?->email;
+
+    if (!$email) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No email address available for this customer.',
+        ], 422);
+    }
+
+    $sale->load(['items.product', 'payments', 'customer', 'user', 'branch.shop']);
+
+    // Queue the email instead of sending immediately
+    Mail::to($email)->queue(new ReceiptMail($sale));
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Receipt email has been queued and will be sent shortly to ' . $email,
+    ]);
+}
+
+public function invoicePreview(Request $request)
+{
+    $validated = $request->validate([
+        'items' => 'required|array|min:1',
+        'items.*.id' => 'required|integer',
+        'items.*.name' => 'required|string',
+        'items.*.qty' => 'required|numeric|min:1',
+        'items.*.price' => 'required|numeric|min:0',
+        'customer_id' => 'nullable|exists:customers,id',
+        'discount' => 'nullable|numeric|min:0',
+        'tax' => 'nullable|numeric|min:0',
+        'subtotal' => 'required|numeric',
+        'grand_total' => 'required|numeric',
+    ]);
+
+    $shop = auth()->user()->shop;
+    $customer = $validated['customer_id']
+        ? Customer::find($validated['customer_id'])
+        : null;
+
+    return view('pos.invoice-print', [
+        'shop' => $shop,
+        'customer' => $customer,
+        'items' => $validated['items'],
+        'subtotal' => $validated['subtotal'],
+        'discount' => $validated['discount'] ?? 0,
+        'tax' => $validated['tax'] ?? 0,
+        'grandTotal' => $validated['grand_total'],
+        'reference' => 'INV-' . strtoupper(uniqid()),
+        'date' => now()->format('d M Y, h:i A'),
+    ]);
 }
 
     private function authorizeSale(Sale $sale): void

@@ -12,8 +12,9 @@ return new class extends Migration {
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('title');
-            $table->string('category')->default('general');
+            $table->string('category')->nullable();
             $table->decimal('amount', 10, 2);
+            $table->string('image')->nullable();
             $table->text('notes')->nullable();
             $table->date('expense_date');
             $table->timestamps();

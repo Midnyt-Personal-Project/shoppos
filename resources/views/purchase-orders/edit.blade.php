@@ -1,12 +1,12 @@
 @extends('layouts.app')
-@section('title','New Supply Request')
-@section('page-title','New Supply Request')
+@section('title','Edit Supply Request')
+@section('page-title','Edit Purchase Order')
 
 @section('content')
-<div class="max-w-4xl" id="createPurchaseOrder">
+<div class="max-w-4xl" id="editPurchaseOrder">
 
-    <form method="POST" action="{{ route('purchase-orders.store') }}" class="space-y-5" id="poForm">
-        @csrf
+    <form method="POST" action="{{ route('purchase-orders.update', $purchaseOrder) }}" class="space-y-5" id="poForm">
+        @csrf @method('PUT')
 
         {{-- Header details --}}
         <div class="card p-6 space-y-4">
@@ -15,7 +15,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
-                Supply Request Details
+                Edit Supply Request
             </h2>
             <div class="grid grid-cols-2 gap-4">
 
@@ -24,36 +24,45 @@
                     <label class="text-slate-400 text-xs mb-1 block">Supplier</label>
                     <select id="supplierSelect" class="input" onchange="handleSupplierChange(this)">
                         <option value="">— Select Supplier —</option>
+                        @php
+                            $selectedSupplierName = $purchaseOrder->supplier_name;
+                            $selectedSupplierPhone = $purchaseOrder->supplier_phone;
+                            $supplierNames = array_column($suppliers, 'name');
+                            $isExisting = in_array($selectedSupplierName, $supplierNames);
+                        @endphp
                         @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier['name'] }}" data-phone="{{ $supplier['phone'] }}">
+                            <option value="{{ $supplier['name'] }}" data-phone="{{ $supplier['phone'] }}"
+                                @if($supplier['name'] == $selectedSupplierName) selected @endif>
                                 {{ $supplier['name'] }}
                             </option>
                         @endforeach
-                        <option value="new">➕ Add New Supplier</option>
+                        <option value="new" @if(!$isExisting && $selectedSupplierName) selected @endif>➕ Add New Supplier</option>
                     </select>
                 </div>
 
                 {{-- Supplier Name (editable when "new" selected) --}}
                 <div>
                     <label class="text-slate-400 text-xs mb-1 block">Supplier Name</label>
-                    <input type="text" name="supplier_name" id="supplierName" value="{{ old('supplier_name') }}"
-                           class="input" placeholder="Enter supplier name" readonly>
+                    <input type="text" name="supplier_name" id="supplierName" value="{{ old('supplier_name', $selectedSupplierName) }}"
+                           class="input" placeholder="Enter supplier name"
+                           @if($isExisting) readonly @endif>
                 </div>
 
                 {{-- Supplier Phone --}}
                 <div>
                     <label class="text-slate-400 text-xs mb-1 block">Supplier Phone</label>
-                    <input type="text" name="supplier_phone" id="supplierPhone" value="{{ old('supplier_phone') }}"
-                           class="input" placeholder="Enter supplier phone" readonly>
+                    <input type="text" name="supplier_phone" id="supplierPhone" value="{{ old('supplier_phone', $selectedSupplierPhone) }}"
+                           class="input" placeholder="Enter supplier phone"
+                           @if($isExisting) readonly @endif>
                 </div>
 
                 <div>
                     <label class="text-slate-400 text-xs mb-1 block">Expected Delivery Date</label>
-                    <input type="date" name="expected_at" value="{{ old('expected_at') }}" class="input">
+                    <input type="date" name="expected_at" value="{{ old('expected_at', $purchaseOrder->expected_at?->format('Y-m-d')) }}" class="input">
                 </div>
                 <div>
                     <label class="text-slate-400 text-xs mb-1 block">Notes</label>
-                    <input type="text" name="notes" value="{{ old('notes') }}"
+                    <input type="text" name="notes" value="{{ old('notes', $purchaseOrder->notes) }}"
                            class="input" placeholder="Optional notes for admin">
                 </div>
             </div>
@@ -119,12 +128,12 @@
         </div>
 
         <div class="flex gap-3">
-            <a href="{{ route('purchase-orders.index') }}" class="btn-secondary">Cancel</a>
-            <button type="submit" id="submitBtn" class="btn-primary" disabled>
+            <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="btn-secondary">Cancel</a>
+            <button type="submit" id="submitBtn" class="btn-primary">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
-                Submit Supply Request
+                Update Supply Request
             </button>
         </div>
     </form>
@@ -158,7 +167,7 @@
         }
 
         // ── Product Search & Items ────────────────────────────────────────
-        let rows = [];
+        let rows = @json($items);
         let searchTimeout = null;
         let isSearching = false;
 
@@ -189,10 +198,14 @@
 
             let html = '';
             rows.forEach((row, index) => {
+                // Add hidden delete field if row.id exists (for deletion)
+                const deleteField = row.id ? `<input type="hidden" name="items[${index}][delete]" value="0">` : '';
                 html += `
                     <tr>
                         <td class="py-3 pr-3">
+                            <input type="hidden" name="items[${index}][id]" value="${row.id || ''}">
                             <input type="hidden" name="items[${index}][product_id]" value="${row.product_id}">
+                            ${deleteField}
                             <p class="text-white text-sm font-medium">${escapeHtml(row.product_name)}</p>
                             <p class="text-slate-500 text-xs">${escapeHtml(row.unit || '')}</p>
                         </td>
@@ -259,6 +272,12 @@
             document.querySelectorAll('.remove-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = parseInt(this.dataset.index);
+                    const row = rows[idx];
+                    if (row.id) {
+                        // Mark for deletion by updating the hidden delete field
+                        const deleteInput = document.querySelector(`input[name="items[${idx}][delete]"]`);
+                        if (deleteInput) deleteInput.value = '1';
+                    }
                     rows.splice(idx, 1);
                     renderItems();
                 });
@@ -357,6 +376,7 @@
                 exists.quantity_requested += 1;
             } else {
                 rows.push({
+                    id: null,
                     product_id: product.id,
                     product_name: product.name,
                     current_stock: product.stock || 0,
@@ -383,7 +403,6 @@
             }
         });
 
-        // Expose supplier handler to global scope for inline onclick
         window.handleSupplierChange = handleSupplierChange;
     })();
 </script>
