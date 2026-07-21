@@ -19,8 +19,7 @@ class OfflineLicenseMiddleware
         // Standard bypassed routes
         $bypassed = [
             'login', 'logout', 'setup.*', 'setup.check', 'setup.store',
-            'license.*', 'settings.offline.verify', 'settings.offline.lock',
-            'settings.offline',
+            'license.*', 'settings.*',
         ];
 
         foreach ($bypassed as $pattern) {
