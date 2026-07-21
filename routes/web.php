@@ -48,8 +48,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // ─── Authenticated ─────────────────────────────────────────────────────────────
-// Route::middleware(['auth', 'role', 'license'])->group(function () {
-Route::middleware(['auth', 'role',])->group(function () {
+Route::middleware(['auth', 'role', 'license'])->group(function () {
 
     Route::get('/settings/peers', [App\Http\Controllers\PeerController::class, 'index'])->name('settings.peers.index');
     Route::post('/settings/peers', [App\Http\Controllers\PeerController::class, 'store'])->name('settings.peers.store');
@@ -169,6 +168,9 @@ Route::middleware(['auth', 'role',])->group(function () {
         Route::get('/',                      [SettingController::class, 'index'])->name('index');
         Route::post('/general',              [SettingController::class, 'saveGeneral'])->name('general');
         Route::post('/notifications',        [SettingController::class, 'saveNotifications'])->name('notifications');
+        Route::post('/offline/verify',       [SettingController::class, 'verifyOfflinePassword'])->name('offline.verify');
+        Route::get('/offline/lock',          [SettingController::class, 'lockOffline'])->name('offline.lock');
+        Route::post('/offline',              [SettingController::class, 'saveOffline'])->name('offline');
         Route::post('/email/{branch}',       [SettingController::class, 'saveBranchEmail'])->name('saveBranchEmail');
         Route::post('/email/{branch}/test',  [SettingController::class, 'testEmail'])->name('testEmail');
         Route::get('/email/{branch}/clear',  [SettingController::class, 'clearBranchEmail'])->name('clearBranchEmail');

@@ -3,11 +3,58 @@
 @section('page-title', 'Settings')
 
 @section('content')
-<div class="max-w-4xl" x-data="{ tab: 'general' }">
+<div class="max-w-4xl" x-data="{
+    tab: 'general',
+    offlineUnlocked: {{ session('offline_unlocked', false) ? 'true' : 'false' }},
+    offlinePassword: '',
+    offlineError: '',
+    verifying: false,
+    async verifyPassword() {
+        if (!this.offlinePassword) {
+            this.offlineError = 'Please enter a password.';
+            return;
+        }
+        this.verifying = true;
+        this.offlineError = '';
+        try {
+            const response = await fetch('{{ route('settings.offline.verify') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ password: this.offlinePassword })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                this.offlineUnlocked = true;
+                this.offlinePassword = '';
+            } else {
+                this.offlineError = data.message || 'Invalid password.';
+            }
+        } catch (e) {
+            this.offlineError = 'An error occurred. Please try again.';
+        } finally {
+            this.verifying = false;
+        }
+    }
+}">
 
     {{-- Tab bar including Sync Peers --}}
+    @php
+        $tabs = [
+            'general' => 'General',
+            'taxes' => 'Taxes',
+            'email' => 'Email & Gmail',
+            'notifications' => 'Notifications',
+            'peers' => 'Sync Peers'
+        ];
+        if (strtolower(env('Mode', '')) === 'offline') {
+            $tabs['offline'] = 'Offline License';
+        }
+    @endphp
     <div class="flex gap-1 mb-6 bg-slate-800/50 p-1 rounded-xl w-fit flex-wrap">
-        @foreach(['general' => 'General', 'taxes' => 'Taxes', 'email' => 'Email & Gmail', 'notifications' => 'Notifications', 'peers' => 'Sync Peers'] as $key => $label)
+        @foreach($tabs as $key => $label)
         <button @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}'
                     ? 'bg-surface-card text-white shadow-sm'
@@ -292,6 +339,110 @@
             </div>
         </div>
     </div>
+
+    {{-- ═══ TAB: OFFLINE LICENSE ═════════════════════════════════════════════ --}}
+    @if(strtolower(env('Mode', '')) === 'offline')
+    <div x-show="tab === 'offline'" x-cloak>
+        <div x-show="!offlineUnlocked" class="card p-6 max-w-md mx-auto space-y-4">
+            <h2 class="text-white font-semibold border-b border-slate-800 pb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                Password Required
+            </h2>
+            <p class="text-slate-400 text-xs">This tab is password protected. Please enter the offline password to view these settings.</p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="text-slate-400 text-xs mb-1 block">Offline Password</label>
+                    <input type="password" x-model="offlinePassword" @keydown.enter="verifyPassword()" class="input w-full" placeholder="Enter password...">
+                </div>
+                <div x-show="offlineError" class="text-red-400 text-xs" x-text="offlineError"></div>
+                <button type="button" @click="verifyPassword()" :disabled="verifying" class="btn-primary w-full py-2">
+                    <span x-text="verifying ? 'Verifying...' : 'Unlock Tab'"></span>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="offlineUnlocked" class="space-y-6">
+            <form method="POST" action="{{ route('settings.offline') }}" class="space-y-5">
+                @csrf
+                <div class="card p-6 space-y-5">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-white font-semibold flex items-center gap-2">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            Offline License Management
+                        </h2>
+                        <a href="{{ route('settings.offline.lock') }}" class="text-xs text-red-400 hover:underline">🔒 Lock Tab</a>
+                    </div>
+
+                    <div>
+                        <h3 class="text-slate-300 font-medium text-sm mb-2">Allowed Years</h3>
+                        <p class="text-slate-500 text-xs mb-3">Select the years the software is allowed to be used offline. If none selected, the current year is allowed.</p>
+
+                        @php
+                            $allowedYears = \App\Models\ShopSetting::get(auth()->user()->shop_id, 'offline_allowed_years', [date('Y')]);
+                            if (is_string($allowedYears)) {
+                                $allowedYears = array_filter(array_map('trim', explode(',', $allowedYears)));
+                            }
+                            $allowedYears = array_map('strval', (array) $allowedYears);
+
+                            $yearsList = [date('Y') - 1, date('Y'), date('Y') + 1, date('Y') + 2, date('Y') + 3];
+                        @endphp
+
+                        <div class="flex flex-wrap gap-4">
+                            @foreach($yearsList as $yr)
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
+                                <input type="checkbox" name="allowed_years[]" value="{{ $yr }}"
+                                       {{ in_array((string)$yr, $allowedYears, true) ? 'checked' : '' }}
+                                       class="rounded bg-slate-800 border-slate-700 text-green-500">
+                                {{ $yr }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800">
+                        <h3 class="text-slate-300 font-medium text-sm mb-2">Allowed Months</h3>
+                        <p class="text-slate-500 text-xs mb-3">Select the months the software is allowed to be used offline. If none selected, all months are allowed.</p>
+
+                        @php
+                            $allowedMonths = \App\Models\ShopSetting::get(auth()->user()->shop_id, 'offline_allowed_months', [1,2,3,4,5,6,7,8,9,10,11,12]);
+                            if (is_string($allowedMonths)) {
+                                $allowedMonths = array_filter(array_map('intval', explode(',', $allowedMonths)));
+                            }
+                            $allowedMonths = array_map('intval', (array) $allowedMonths);
+
+                            $monthsList = [
+                                1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+                                5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+                                9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+                            ];
+                        @endphp
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            @foreach($monthsList as $num => $name)
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
+                                <input type="checkbox" name="allowed_months[]" value="{{ $num }}"
+                                       {{ in_array($num, $allowedMonths, true) ? 'checked' : '' }}
+                                       class="rounded bg-slate-800 border-slate-700 text-green-500">
+                                {{ $name }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="btn-primary px-8">Save Offline Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 
 </div>
 
