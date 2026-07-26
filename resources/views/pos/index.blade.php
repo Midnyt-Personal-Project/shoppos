@@ -330,12 +330,12 @@
                 </div>
                 <input id="searchInput" class="input pl-10 py-3 w-full" placeholder="Search name or barcode..." type="text">
             </div>
-            {{-- <button id="scanButton" class="btn-primary flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="scanButton" type="button" title="Scan a barcode or QR code with your camera" class="btn-primary flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4M12 12h4.01M20 12h4M4 12H2m-2 0h4M12 20h4M4 20h4" />
                 </svg>
                 <span class="text-[10px] font-bold uppercase mt-1">Scan</span>
-            </button> --}}
+            </button>
         </div>
 
         <!-- Category Filters -->
@@ -566,7 +566,7 @@
                 </div>
             </div>
         </div>
-        <p class="text-white text-sm mt-4">Position barcode/QR code in front of camera</p>
+        <p class="text-white text-sm mt-4">Position a barcode or QR code in front of the camera</p>
     </div>
 @endsection
 

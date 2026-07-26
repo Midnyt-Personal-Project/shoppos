@@ -36,7 +36,7 @@ Route::post('/setup',      [SetupController::class, 'store'])->name('setup.store
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
@@ -65,7 +65,7 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
     Route::prefix('pos')->name('pos.')->group(function () {
         Route::get('/',               [PosController::class, 'index'])->name('index');
         Route::get('/search',         [PosController::class, 'searchProduct'])->name('search');
-        Route::post('/checkout',      [PosController::class, 'checkout'])->name('checkout');
+        Route::post('/checkout',      [PosController::class, 'checkout'])->middleware('throttle:30,1')->name('checkout');
         Route::get('/receipt/{sale}', [PosController::class, 'receipt'])->name('receipt');
         Route::post('/refund/{sale}', [PosController::class, 'refund'])->name('refund')
             ->middleware('role:owner,admin,manager');

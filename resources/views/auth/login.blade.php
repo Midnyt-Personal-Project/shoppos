@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#16a34a">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icon-192.png') }}">
     <title>Login — OmniPOS</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -85,6 +88,22 @@
                 <span x-text="loginLoading ? 'Signing in...' : 'Sign In'"></span>
             </button>
         </form>
+
+        {{-- Install as a web app — appears on supported browsers after the install prompt is available --}}
+        <div id="installAppArea" class="mt-5 text-center hidden">
+            <button id="installAppButton" type="button"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style="background:rgba(22,163,74,.14);color:#86efac;border:1px solid rgba(22,163,74,.35)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-8m0 8l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-3M5 15v3a2 2 0 002 2"/>
+                </svg>
+                Install OmniPOS App
+            </button>
+            <p class="text-slate-500 text-xs mt-2">Install for faster access from your device.</p>
+        </div>
+        <div id="iosInstallHint" class="mt-5 text-center hidden">
+            <p class="text-slate-400 text-xs leading-relaxed">To install on iPhone or iPad, tap <strong class="text-slate-200">Share</strong> in Safari, then choose <strong class="text-slate-200">Add to Home Screen</strong>.</p>
+        </div>
 
         {{-- Setup button — only shown when DB is empty --}}
         <div x-show="needsSetup" class="mt-6 text-center">
@@ -373,6 +392,27 @@
     </div>
 
     <script>
+        // Browser-controlled install prompt for the OmniPOS Progressive Web App.
+        let deferredInstallPrompt;
+        const installArea = document.getElementById('installAppArea');
+        const installButton = document.getElementById('installAppButton');
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            installArea?.classList.remove('hidden');
+        });
+        installButton?.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            installArea?.classList.add('hidden');
+        });
+        window.addEventListener('appinstalled', () => installArea?.classList.add('hidden'));
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        if (isIos && !isStandalone) document.getElementById('iosInstallHint')?.classList.remove('hidden');
+
         function setupApp() {
             return {
                 // State

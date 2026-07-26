@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#16a34a">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icon-192.png') }}">
     <link rel="icon" type="image/png" href="{{ asset('icon.png') }}">
     <title>@yield('title', 'POS System') — {{ auth()->user()->shop->name ?? 'POS' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

@@ -12,4 +12,8 @@ window.Alpine = Alpine;
 
  
 Alpine.start();
- 
+
+// Register the lightweight PWA service worker. It deliberately never caches POS pages/data.
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
