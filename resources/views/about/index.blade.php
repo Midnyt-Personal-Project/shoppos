@@ -97,7 +97,7 @@
             <!-- Overview -->
             <section id="overview" class="anchor-link">
                 <h2 class="text-3xl font-bold text-white border-b border-slate-700 pb-2 mb-4">Overview</h2>
-                <p class="text-slate-300 leading-relaxed"><strong class="text-white">OmniPOS</strong> is a modern, native desktop Point of Sale application built with Laravel and NativePHP. Designed for single or multi‑branch retail businesses, it offers lightning‑fast checkout, real‑time inventory tracking, customer debt management, and powerful reporting – all wrapped in a beautiful dark interface that runs natively on Windows, macOS, and Linux.</p>
+                <p class="text-slate-300 leading-relaxed"><strong class="text-white">OmniPOS</strong> is a modern, native desktop Point of Sale application built with Laravel and NativePHP. Designed for single or multi‑branch retail businesses, it offers rapid checkout, real-time inventory tracking, customer debt management, and powerful reporting — in a dark interface that can run as a native desktop application or installed web app.</p>
                 <p class="text-slate-300 mt-3">The application follows a robust architecture: Laravel backend, Blade frontend (or Inertia/Vue), and NativePHP for native menus, auto‑updates, and system tray integration.</p>
             </section>
 
@@ -105,14 +105,14 @@
             <section id="features" class="anchor-link">
                 <h2 class="text-3xl font-bold text-white border-b border-slate-700 pb-2 mb-4">Key Features</h2>
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">💳 Fast POS</span> – Barcode scanning, instant search, cart management, and receipt printing.</div>
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">💳 Fast POS</span> – Camera barcode/QR scanning, USB scanner input, instant search, cart management, and receipt printing.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">📦 Stock Management</span> – Low stock alerts, branch transfers, restock via purchase orders.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">🏢 Multi‑branch</span> – Separate inventory, users, and sales per location.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">👥 Customer Debt</span> – Sell on credit, track repayments, automated reminders.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">📊 Reports</span> – Sales summaries, profit margins, stock valuation, daily/weekly email reports.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">🔐 Role‑based Access</span> – Owner, Admin, Manager, Cashier with granular permissions.</div>
                     <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">📧 Email Notifications</span> – Daily sales, debt reminders, low stock alerts.</div>
-                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">🔄 Auto‑Updater</span> – One‑click updates with rollback support.</div>
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4"><span class="font-bold text-emerald-400">📲 Installable Web App</span> – Install OmniPOS from a compatible browser for quick device access.</div>
                 </div>
             </section>
 
@@ -148,7 +148,7 @@
                     <li>Create the owner (admin) account.</li>
                     <li>Activate your license key (purchased from the official website).</li>
                 </ol>
-                <p class="text-slate-300 mt-3">After setup, log in with your admin credentials. The dashboard shows today’s sales, low stock items, and recent activity.</p>
+                <p class="text-slate-300 mt-3">After setup, log in with your admin credentials. On a compatible browser, select <strong class="text-white">Install OmniPOS App</strong> on the login screen to add it to your device. The dashboard shows today’s sales, low stock items, and recent activity.</p>
             </section>
 
             <!-- User Roles -->
@@ -177,7 +177,7 @@
                 <h2 class="text-3xl font-bold text-white border-b border-slate-700 pb-2 mb-4">Using the POS</h2>
                 <p class="text-slate-300">Access the Point of Sale from the menu <strong class="text-white">File → New Sale</strong> or press <kbd class="bg-slate-800 px-2 py-0.5 rounded text-sm">Ctrl+N</kbd>.</p>
                 <ul class="list-disc list-inside text-slate-300 space-y-1 mt-2">
-                    <li><strong>Search products</strong> – Type name, SKU, or scan barcode (auto‑focus).</li>
+                    <li><strong>Find / scan products</strong> – Type a name or barcode, use a USB barcode scanner, or select <strong>Scan</strong> to use the device camera for a barcode or QR code.</li>
                     <li><strong>Cart management</strong> – Adjust quantities, apply discounts, remove items.</li>
                     <li><strong>Customer selection</strong> – Attach sale to existing customer or create new on the fly.</li>
                     <li><strong>Payment</strong> – Cash, card, or credit (adds to customer debt).</li>
@@ -185,7 +185,7 @@
                     <li><strong>Refunds</strong> – From Sales History → View sale → Refund (manager+ role).</li>
                 </ul>
                 <div class="mt-4 bg-emerald-600/10 border border-emerald-600/20 rounded-xl p-3 text-sm text-emerald-300">
-                    💡 <strong>Tip:</strong> Press <kbd class="bg-black/30 px-1 rounded">F2</kbd> to focus the product search box instantly.
+                    💡 <strong>Tip:</strong> Camera scanning and web-app installation require HTTPS in production (or localhost while developing).
                 </div>
             </section>
 
@@ -254,7 +254,7 @@
             <section id="troubleshooting" class="anchor-link">
                 <h2 class="text-3xl font-bold text-white border-b border-slate-700 pb-2 mb-4">Troubleshooting</h2>
                 <div class="space-y-3 text-slate-300">
-                    <div><strong class="text-white">❌ App won’t start</strong> – Check antivirus; ensure Windows 10+, macOS 11+, Linux with glibc 2.28+.</div>
+                    <div><strong class="text-white">📷 Camera scanner does not open</strong> – Confirm browser camera permission and use HTTPS (or localhost during development). You can still use a USB scanner or manual barcode entry.</div>
                     <div><strong class="text-white">🔑 Invalid license</strong> – Verify internet connection and key. Contact support.</div>
                     <div><strong class="text-white">🖨️ Receipt not printing</strong> – Go to Settings → Printer, select correct printer, test print.</div>
                     <div><strong class="text-white">📧 Emails not sending</strong> – Verify SMTP settings; use “Test Email” in Settings.</div>
