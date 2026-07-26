@@ -2,31 +2,33 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Closure;
+
 use App\Models\ShopSetting;
 
 class OfflineLicenseMiddleware
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        Log::debug('OfflineLicenseMiddleware: handling route', [
-            'route' => $request->route()?->getName(),
-            'uri'   => $request->path(),
+        Log::info('OfflineLicenseMiddleware: Incoming request execution started', [
+            'route_name' => $request->route()?->getName(),
+            'uri'        => $request->path(),
+            'full_url'   => $request->fullUrl(),
+            'method'     => $request->method(),
         ]);
 
-        // Standard bypassed routes
-        $bypassed = [
-            'login', 'logout', 'setup.*', 'setup.check', 'setup.store',
-            'license.*', 'settings.*',
-        ];
-
-        foreach ($bypassed as $pattern) {
-            if ($request->routeIs($pattern)) {
-                return $next($request);
-            }
+        // Forcefully bypass settings, license, login, logout, and setup entirely by segment check
+        $uri = trim($request->path(), '/');
+        if (str_starts_with($uri, 'settings') || str_starts_with($uri, 'license') || str_starts_with($uri, 'setup') || $uri === 'login' || $uri === 'logout') {
+            Log::info('OfflineLicenseMiddleware: Request bypassed successfully via string matching', [
+                'uri' => $uri,
+            ]);
+            return $next($request);
         }
+
+        Log::debug('OfflineLicenseMiddleware: Route was NOT bypassed, checking authentication and period validation.');
 
         if (auth()->check()) {
             $shopId = auth()->user()->shop_id ?? 1;
@@ -36,7 +38,6 @@ class OfflineLicenseMiddleware
             $allowedYears = ShopSetting::get($shopId, 'offline_allowed_years');
             $allowedMonths = ShopSetting::get($shopId, 'offline_allowed_months');
 
-            // Default to current year and all months if not set
             if (is_null($allowedYears)) {
                 $allowedYears = [$currentYear];
             } else {
@@ -60,13 +61,13 @@ class OfflineLicenseMiddleware
             $monthAllowed = in_array($currentMonth, $allowedMonths, true);
 
             if (!$yearAllowed || !$monthAllowed) {
-                Log::warning('OfflineLicenseMiddleware: access denied, offline license expired/invalid for this period', [
-                    'route'         => $request->route()?->getName(),
-                    'uri'           => $request->path(),
-                    'current_year'  => $currentYear,
-                    'current_month' => $currentMonth,
-                    'allowed_years' => $allowedYears,
-                    'allowed_months'=> $allowedMonths,
+                Log::warning('OfflineLicenseMiddleware: Access denied, offline license expired/invalid for this period', [
+                    'route'          => $request->route()?->getName(),
+                    'uri'            => $request->path(),
+                    'current_year'   => $currentYear,
+                    'current_month'  => $currentMonth,
+                    'allowed_years'  => $allowedYears,
+                    'allowed_months' => $allowedMonths,
                 ]);
 
                 if ($request->expectsJson()) {

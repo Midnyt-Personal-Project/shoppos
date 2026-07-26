@@ -142,7 +142,9 @@ Route::middleware(['auth', 'role', 'license'])->group(function () {
         Route::get('/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
         Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
         Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
-        Route::resource('expenses', ExpenseController::class)->except(['edit', 'update']); // already have index, store, destroy
+        Route::get('/expenses/export/csv', [ExpenseController::class, 'exportCsv'])->name('expenses.export.csv');
+        Route::get('/expenses/export/xlsx', [ExpenseController::class, 'exportXlsx'])->name('expenses.export.xlsx');    
+        Route::resource('expenses', ExpenseController::class)->except(['edit', 'update']); 
         Route::get('/expenses/{expense}/download-receipt', [ExpenseController::class, 'downloadReceipt'])->name('expenses.download-receipt');
     });
 

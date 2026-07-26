@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\{Branch, Expense, ExpenseCategory};
+use App\Exports\ExpensesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExpenseController extends Controller
 {
@@ -27,7 +29,6 @@ class ExpenseController extends Controller
         $expenses    = $query->orderByDesc('expense_date')->paginate(20)->withQueryString();
         $totalAmount = $query->sum('amount');
 
-        // Fetch categories for filter dropdown
         $categories = ExpenseCategory::where('branch_id', $branchId)
             ->where('is_active', true)
             ->orderBy('name')
@@ -44,18 +45,15 @@ class ExpenseController extends Controller
             'amount'       => 'required|numeric|min:0.01',
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string',
-             'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf', // Optional receipt upload
+            'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf',
         ]);
 
-        // Category handling: only admin/manager can set a category
         if ($user->isAdmin() || $user->isManager()) {
             $data['category'] = $request->validate(['category' => 'nullable|string|max:100'])['category'];
         } else {
-            // Cashier: leave category NULL
             $data['category'] = null;
         }
 
-         // Handle receipt upload
         if ($request->hasFile('receipt')) {
             $path = $request->file('receipt')->store('receipts', 'public');
             $data['receipt_path'] = $path;
@@ -99,13 +97,10 @@ class ExpenseController extends Controller
             'amount'       => 'required|numeric|min:0.01',
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string',
-            'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf', // Optional receipt upload
+            'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf',
         ]);
 
-        // Handle receipt upload
-          // Handle receipt replacement
         if ($request->hasFile('receipt')) {
-            // Delete old receipt if exists
             if ($expense->receipt_path && Storage::disk('public')->exists($expense->receipt_path)) {
                 Storage::disk('public')->delete($expense->receipt_path);
             }
@@ -118,14 +113,15 @@ class ExpenseController extends Controller
         return redirect()->route('expenses.index')->with('success', 'Expense updated.');
     }
 
-     public function downloadReceipt(Expense $expense)
+    public function downloadReceipt(Expense $expense)
     {
-        $this->authorizeExpense($expense); // ensures branch permission
+        $this->authorizeExpense($expense);
         if (!$expense->receipt_path) {
             abort(404, 'Receipt not found.');
         }
         return Storage::disk('public')->download($expense->receipt_path);
     }
+
     public function destroy(Expense $expense)
     {
         $this->authorizeExpense($expense);
@@ -134,75 +130,122 @@ class ExpenseController extends Controller
     }
 
     public function report(Request $request)
-{
-    $user = auth()->user();
-    $branchId = current_branch()->id;
-    $isAdminOrManager = $user->isAdmin() || $user->isManager();
+    {
+        $user = auth()->user();
+        $branchId = current_branch()->id;
+        $isAdminOrManager = $user->isAdmin() || $user->isManager();
 
-    // Build query – if admin/manager, allow all branches; otherwise only own branch
-    $query = Expense::with(['user', 'branch']);
+        $query = Expense::with(['user', 'branch']);
 
-    if (!$isAdminOrManager) {
-        $query->where('branch_id', $branchId);
-    }
-
-    // Branch filter (only for admin/manager)
-    if ($request->filled('branch_id') && $isAdminOrManager) {
-        $query->where('branch_id', $request->branch_id);
-    }
-
-    // Date filter
-    if ($request->filled('date_from')) {
-        $query->whereDate('expense_date', '>=', $request->date_from);
-    }
-    if ($request->filled('date_to')) {
-        $query->whereDate('expense_date', '<=', $request->date_to);
-    }
-
-    // Category filter
-    if ($request->filled('category')) {
-        if ($request->category === 'uncategorized') {
-            $query->whereNull('category');
-        } else {
-            $query->where('category', $request->category);
+        if (!$isAdminOrManager) {
+            $query->where('branch_id', $branchId);
         }
+
+        if ($request->filled('branch_id') && $isAdminOrManager) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('expense_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('expense_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('category')) {
+            if ($request->category === 'uncategorized') {
+                $query->whereNull('category');
+            } else {
+                $query->where('category', $request->category);
+            }
+        }
+
+        $totalAmount = $query->sum('amount');
+        $expenses = $query->orderBy('expense_date', 'desc')->get();
+
+        $categoryTotals = $expenses->groupBy('category')->map(fn($items) => $items->sum('amount'));
+        $monthlyTotals = $expenses->groupBy(fn($e) => $e->expense_date->format('Y-m'))
+            ->map(fn($items) => $items->sum('amount'))
+            ->sortKeys();
+        $dailyTotals = $expenses->groupBy(fn($e) => $e->expense_date->format('Y-m-d'))
+            ->map(fn($items) => $items->sum('amount'))
+            ->sortKeys();
+
+        $branches = Branch::where('shop_id', $user->shop_id)->where('is_active', true)->get();
+        $categories = ExpenseCategory::where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->pluck('name', 'name');
+
+        return view('reports.expense', compact(
+            'expenses', 'totalAmount', 'categoryTotals', 'monthlyTotals', 'dailyTotals',
+            'branches', 'categories', 'isAdminOrManager'
+        ));
     }
 
-    // Summary data
-    $totalAmount = $query->sum('amount');
-    $expenses = $query->orderBy('expense_date', 'desc')->get();
+    // ─── EXPORT: CSV ────────────────────────────────────────────────────────────
+    public function exportCsv(Request $request)
+    {
+        $branchId = current_branch()->id;
+        $query = Expense::with('user')->where('branch_id', $branchId);
 
-    // Group by category
-    $categoryTotals = $expenses->groupBy('category')->map(fn($items) => $items->sum('amount'));
+        if ($request->filled('date_from')) $query->whereDate('expense_date', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $query->whereDate('expense_date', '<=', $request->date_to);
+        if ($request->filled('category')) {
+            if ($request->category === 'uncategorized') {
+                $query->whereNull('category');
+            } else {
+                $query->where('category', $request->category);
+            }
+        }
 
-    // Group by month for line chart
-    $monthlyTotals = $expenses->groupBy(fn($e) => $e->expense_date->format('Y-m'))
-        ->map(fn($items) => $items->sum('amount'))
-        ->sortKeys();
+        $expenses = $query->orderBy('expense_date')->get();
 
-    // Group by day for bar chart (if short period)
-    $dailyTotals = $expenses->groupBy(fn($e) => $e->expense_date->format('Y-m-d'))
-        ->map(fn($items) => $items->sum('amount'))
-        ->sortKeys();
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="expenses_'.date('Y-m-d').'.csv"',
+        ];
 
-    // Branches for filter
-    $branches = Branch::where('shop_id', $user->shop_id)->where('is_active', true)->get();
+        $callback = function() use ($expenses) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM for Excel UTF-8
+            fputcsv($file, ['ID', 'Title', 'Category', 'Amount', 'Date', 'User', 'Notes', 'Receipt URL']);
 
-    // Categories for filter
-    $categories = ExpenseCategory::where('branch_id', $branchId)
-        ->where('is_active', true)
-        ->orderBy('name')
-        ->pluck('name', 'name');
+            foreach ($expenses as $expense) {
+                fputcsv($file, [
+                    $expense->id,
+                    $expense->title,
+                    $expense->category ?? 'Uncategorized',
+                    number_format($expense->amount, 2),
+                    $expense->expense_date->format('Y-m-d'),
+                    $expense->user->name,
+                    $expense->notes ?? '',
+                    $expense->receipt_url ?? '',
+                ]);
+            }
+            fclose($file);
+        };
 
-    return view('reports.expense', compact(
-        'expenses', 'totalAmount', 'categoryTotals', 'monthlyTotals', 'dailyTotals',
-        'branches', 'categories', 'isAdminOrManager'
-    ));
-}
+        return response()->stream($callback, 200, $headers);
+    }
 
+    // ─── EXPORT: XLSX ────────────────────────────────────────────────────────────
+    public function exportXlsx(Request $request)
+    {
+        $branchId = current_branch()->id;
+        $export = new ExpensesExport(
+            $branchId,
+            $request->date_from,
+            $request->date_to,
+            $request->category
+        );
+
+        return Excel::download($export, 'expenses_'.date('Y-m-d').'.xlsx');
+    }
+
+    // ─── AUTHORIZATION HELPER ──────────────────────────────────────────────────
     private function authorizeExpense(Expense $expense): void
     {
         if ($expense->branch_id !== current_branch()->id) abort(403);
     }
-
 }
