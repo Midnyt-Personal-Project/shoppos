@@ -94,6 +94,14 @@
     <main class="flex-1 scrollable-content">
         <div class="max-w-4xl mx-auto px-8 py-10 space-y-12">
 
+            <div class="bg-emerald-600/10 border border-emerald-600/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="font-semibold text-emerald-300">Complete user manual</p>
+                    <p class="text-sm text-slate-300">Download the full illustrated guide for every workflow, setup step, role and troubleshooting procedure.</p>
+                </div>
+                <a href="{{ route('documentation.manual') }}" class="btn-primary whitespace-nowrap justify-center">Download PDF Manual</a>
+            </div>
+
             <!-- Overview -->
             <section id="overview" class="anchor-link">
                 <h2 class="text-3xl font-bold text-white border-b border-slate-700 pb-2 mb-4">Overview</h2>

@@ -11,6 +11,9 @@ use Native\Desktop\Facades\AutoUpdater;
 Route::get('/documentation', function () {
     return view('about.index');
 })->name('documentation');
+Route::get('/documentation/manual', function () {
+    return response()->download(base_path('docs/OmniPOS_Complete_User_Manual.pdf'), 'OmniPOS_Complete_User_Manual.pdf');
+})->name('documentation.manual');
 
 Route::get('/test-branch', function () {
     if (!auth()->check()) {
