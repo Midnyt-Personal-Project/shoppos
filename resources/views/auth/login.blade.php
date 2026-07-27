@@ -90,7 +90,7 @@
         </form>
 
         {{-- Install as a web app — appears on supported browsers after the install prompt is available --}}
-        <div id="installAppArea" class="mt-5 text-center hidden">
+        <div id="installAppArea" class="mt-10  text-center hidden">
             <button id="installAppButton" type="button"
                     class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
                     style="background:rgba(22,163,74,.14);color:#86efac;border:1px solid rgba(22,163,74,.35)">
