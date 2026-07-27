@@ -317,12 +317,49 @@
         }
         #scannerOverlay.open { display: flex; }
         #scannerOverlay.hidden { display: none; }
+        /* html5-qrcode injects the live <video> element into this container. */
         #qr-reader {
-            background: #000;
+            min-height: 320px;
+            background: #020617;
             border-radius: 1rem;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        #qr-reader video { border-radius: 1rem; }
+        #qr-reader > div, #qr-reader__scan_region { width: 100% !important; }
+        #qr-reader video {
+            display: block !important;
+            width: 100% !important;
+            height: 340px !important;
+            object-fit: cover !important;
+            border-radius: 1rem;
+        }
+        #qr-reader img { display: none !important; }
+        .scanner-reticle {
+            pointer-events: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            width: min(62vw, 250px); height: min(62vw, 250px);
+            transform: translate(-50%, -50%);
+            border: 3px solid rgba(74, 222, 128, .95);
+            border-radius: 1rem;
+            box-shadow: 0 0 0 999px rgba(0, 0, 0, .18), 0 0 24px rgba(74, 222, 128, .45);
+            z-index: 2;
+        }
+        .scanner-reticle::after {
+            content: '';
+            position: absolute; left: .5rem; right: .5rem; top: 50%;
+            height: 2px; background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+            animation: scanLine 1.8s ease-in-out infinite;
+        }
+        @keyframes scanLine { 0%,100% { transform: translateY(-95px); } 50% { transform: translateY(95px); } }
+        @media (max-width: 480px) {
+            #qr-reader { min-height: 270px; }
+            #qr-reader video { height: 290px !important; }
+            .scanner-reticle { width: 210px; height: 210px; }
+        }
     </style>
 @endpush
 
@@ -560,7 +597,10 @@
     <!-- Scanner Overlay -->
     <div id="scannerOverlay" class="fixed inset-0 z-50 bg-black/90 hidden flex-col items-center justify-center p-4">
         <div class="relative w-full max-w-md mx-auto">
-            <div id="qr-reader" style="width: 100%;"></div>
+            <div id="qr-reader" style="width: 100%;">
+                <span class="text-slate-400 text-sm">Starting camera preview…</span>
+            </div>
+            <div class="scanner-reticle" aria-hidden="true"></div>
             <p id="scannerStatus" class="text-slate-300 text-sm text-center mt-3">Opening camera…</p>
             <button id="closeScanner" class="absolute top-2 right-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1095,7 +1135,7 @@
         async function startScanner() {
             if (scannerStarting || (html5QrCode && html5QrCode.isScanning)) return;
             if (typeof Html5Qrcode === 'undefined') {
-                alert('The scanner is still loading. Please check your internet connection and try again.');
+                alert('The QR scanner library is still loading. Please check your internet connection and try again.');
                 return;
             }
             if (!navigator.mediaDevices?.getUserMedia) {
@@ -1105,51 +1145,39 @@
             scannerStarting = true;
             document.getElementById('scannerOverlay').classList.add('open');
             document.getElementById('manualBarcode').value = '';
-            scannerStatus.textContent = 'Opening camera…';
+            scannerStatus.textContent = 'Finding the best camera…';
+            const formats = typeof Html5QrcodeSupportedFormats === 'undefined' ? undefined : [
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.CODE_93,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+            ];
+            const onScan = (decodedText) => {
+                const product = products.find(p => String(p.barcode || '').trim() === String(decodedText).trim());
+                if (product) { addToCart(product.id); stopScanner(); }
+                else scannerStatus.textContent = `Code "${decodedText}" was not found. Keep scanning or enter it manually.`;
+            };
             try {
-                // Do not call getUserMedia first: opening the camera twice prevents scanning on many phones.
-                const formats = typeof Html5QrcodeSupportedFormats === 'undefined' ? undefined : [
-                    Html5QrcodeSupportedFormats.QR_CODE,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.CODE_93,
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                ];
                 if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader', formats ? { formatsToSupport: formats } : undefined);
+                // Asking the QR Code JS library for devices first gives phones a real camera ID,
+                // which is more reliable than a facingMode-only request and renders the preview consistently.
+                const cameras = await Html5Qrcode.getCameras();
+                const rearCamera = cameras.find(camera => /back|rear|environment|wide/i.test(camera.label));
+                const camera = rearCamera?.id || cameras[0]?.id || { facingMode: { ideal: 'environment' } };
+                scannerStatus.textContent = 'Camera ready — point it at the code.';
                 await html5QrCode.start(
-                    { facingMode: { exact: 'environment' } },
-                    { fps: 12, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
-                    (decodedText) => {
-                        const product = products.find(p => String(p.barcode || '').trim() === String(decodedText).trim());
-                        if (product) {
-                            addToCart(product.id);
-                            stopScanner();
-                        } else {
-                            scannerStatus.textContent = `Code "${decodedText}" was not found. Try again or enter it manually.`;
-                        }
-                    },
+                    camera,
+                    { fps: 12, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, disableFlip: false },
+                    onScan,
                     () => {}
                 );
-                scannerStatus.textContent = 'Point the camera at a barcode or QR code.';
+                scannerStatus.textContent = 'Live preview active. Put the barcode or QR code inside the green frame.';
             } catch (error) {
-                // Some mobile browsers reject exact environment; retry with the default camera selector.
-                try {
-                    await html5QrCode.start(
-                        { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 240, height: 240 } },
-                        (decodedText) => {
-                            const product = products.find(p => String(p.barcode || '').trim() === String(decodedText).trim());
-                            if (product) { addToCart(product.id); stopScanner(); }
-                            else scannerStatus.textContent = `Code "${decodedText}" was not found. Try again or enter it manually.`;
-                        }, () => {}
-                    );
-                    scannerStatus.textContent = 'Point the camera at a barcode or QR code.';
-                } catch (_) {
-                    scannerStatus.textContent = 'Camera could not open. Allow permission and use HTTPS (or localhost), or enter the barcode manually below.';
-                }
+                scannerStatus.textContent = 'Camera preview could not start. Allow camera permission and use HTTPS (or localhost), or enter the barcode manually below.';
             } finally {
                 scannerStarting = false;
             }
