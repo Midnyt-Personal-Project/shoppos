@@ -170,3 +170,22 @@
         font-weight: 500;
     }
 }
+
+
+/* ── Responsive application shell ───────────────────────────────────────── */
+@media (max-width: 1023px) {
+    main { padding-left: 1rem !important; padding-right: 1rem !important; }
+    header { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .mx-6 { margin-left: 1rem !important; margin-right: 1rem !important; }
+}
+
+/* Keep data tables usable on small screens: their cards scroll horizontally. */
+@media (max-width: 767px) {
+    .card.overflow-hidden { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .card.overflow-hidden > table { min-width: 640px; }
+    .btn-primary, .btn-secondary, .btn-danger { min-height: 2.5rem; }
+    input, select, textarea { font-size: 16px !important; } /* prevents iOS zoom */
+    .fixed.inset-0 { padding: 1rem; }
+    .fixed.inset-0 > .card,
+    .fixed.inset-0 > div:not(.absolute) { max-height: calc(100dvh - 2rem); max-width: 100%; overflow-y: auto; }
+}

@@ -220,7 +220,7 @@
         <div class="flex-1 flex flex-col min-h-screen lg:pl-64">
 
             {{-- Top bar --}}
-            <header class="sticky top-0 z-40 flex items-center gap-4 px-6 py-3 backdrop-blur-sm"
+            <header class="sticky top-0 z-40 flex items-center gap-2 sm:gap-4 px-6 py-3 backdrop-blur-sm"
                 style="background: rgba(30,41,59,0.9); border-bottom: 1px solid var(--color-surface-border)">
 
                 {{-- Mobile menu toggle --}}
@@ -232,9 +232,9 @@
                     </svg>
                 </button>
 
-                <h1 class="text-white font-semibold text-base">@yield('page-title', 'Dashboard')</h1>
+                <h1 class="text-white font-semibold text-base truncate">@yield('page-title', 'Dashboard')</h1>
 
-                <div class="ml-auto flex items-center gap-3">
+                <div class="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
                     <span class="text-xs text-slate-500 hidden sm:block">{{ now()->format('D, d M Y') }}</span>
                     <a href="{{ route('pos.index') }}" class="btn-primary"
                         style="font-size:0.75rem;padding:0.375rem 0.75rem">
@@ -256,7 +256,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
-                            <span class="text-white">{{ current_branch()?->name ?? 'Select branch' }}</span>
+                            <span class="text-white max-w-24 sm:max-w-40 truncate">{{ current_branch()?->name ?? 'Select branch' }}</span>
                             <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

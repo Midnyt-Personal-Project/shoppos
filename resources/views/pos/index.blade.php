@@ -3,7 +3,7 @@
 @section('title', 'POS | OmniPOS')
 
 @push('styles')
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         /* ── Scrollbar ── */
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -265,9 +265,17 @@
             .main-content { padding-right: 340px; }
         }
         @media (max-width: 768px) {
+            .main-content {
+                height: auto;
+                min-height: calc(100dvh - 64px);
+                padding: 1rem;
+                padding-bottom: 6rem;
+                gap: 1rem;
+            }
+            .product-table-wrap { min-height: 320px; }
             .cart-sidebar {
                 width: 100%;
-                height: 55vh;
+                height: min(68dvh, 620px);
                 bottom: 0;
                 top: auto;
                 border-left: none;
@@ -278,6 +286,8 @@
             }
             .cart-sidebar.open { transform: translateY(0); }
             .main-content { padding-right: 0; }
+            .cart-sidebar-payment { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+            .cart-toggle-mobile { bottom: max(1rem, env(safe-area-inset-bottom)); }
             .cart-toggle-mobile {
                 display: flex !important;
             }
@@ -551,6 +561,7 @@
     <div id="scannerOverlay" class="fixed inset-0 z-50 bg-black/90 hidden flex-col items-center justify-center p-4">
         <div class="relative w-full max-w-md mx-auto">
             <div id="qr-reader" style="width: 100%;"></div>
+            <p id="scannerStatus" class="text-slate-300 text-sm text-center mt-3">Opening camera…</p>
             <button id="closeScanner" class="absolute top-2 right-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1078,31 +1089,76 @@
 
         // ─── Scanner ─────────────────────────────────────────────────
         let html5QrCode = null;
+        let scannerStarting = false;
+        const scannerStatus = document.getElementById('scannerStatus');
+
         async function startScanner() {
-            try { await navigator.mediaDevices.getUserMedia({ video: true }); } catch(_) { alert('Camera permission denied.');
-                return; }
+            if (scannerStarting || (html5QrCode && html5QrCode.isScanning)) return;
+            if (typeof Html5Qrcode === 'undefined') {
+                alert('The scanner is still loading. Please check your internet connection and try again.');
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia) {
+                alert('Camera scanning is not supported by this browser. Use a USB scanner or enter the barcode manually.');
+                return;
+            }
+            scannerStarting = true;
             document.getElementById('scannerOverlay').classList.add('open');
             document.getElementById('manualBarcode').value = '';
-            if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader');
+            scannerStatus.textContent = 'Opening camera…';
             try {
-                await html5QrCode.start({ facingMode: 'environment' }, { fps: 15, qrbox: { width: 280, height: 280 } },
-                    function(decoded) {
-                        const p = products.find(x => x.barcode === decoded);
-                        if (p) addToCart(p.id);
-                        else alert('Barcode "' + decoded + '" not found');
-                        stopScanner();
+                // Do not call getUserMedia first: opening the camera twice prevents scanning on many phones.
+                const formats = typeof Html5QrcodeSupportedFormats === 'undefined' ? undefined : [
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                ];
+                if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader', formats ? { formatsToSupport: formats } : undefined);
+                await html5QrCode.start(
+                    { facingMode: { exact: 'environment' } },
+                    { fps: 12, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
+                    (decodedText) => {
+                        const product = products.find(p => String(p.barcode || '').trim() === String(decodedText).trim());
+                        if (product) {
+                            addToCart(product.id);
+                            stopScanner();
+                        } else {
+                            scannerStatus.textContent = `Code "${decodedText}" was not found. Try again or enter it manually.`;
+                        }
                     },
-                    function() {}
+                    () => {}
                 );
-            } catch(e) { alert('Scanner error: ' + e.message); stopScanner(); }
-        }
-        function stopScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => document.getElementById('scannerOverlay').classList.remove('open'))
-                    .catch(() => document.getElementById('scannerOverlay').classList.remove('open'));
-            } else {
-                document.getElementById('scannerOverlay').classList.remove('open');
+                scannerStatus.textContent = 'Point the camera at a barcode or QR code.';
+            } catch (error) {
+                // Some mobile browsers reject exact environment; retry with the default camera selector.
+                try {
+                    await html5QrCode.start(
+                        { facingMode: 'environment' },
+                        { fps: 10, qrbox: { width: 240, height: 240 } },
+                        (decodedText) => {
+                            const product = products.find(p => String(p.barcode || '').trim() === String(decodedText).trim());
+                            if (product) { addToCart(product.id); stopScanner(); }
+                            else scannerStatus.textContent = `Code "${decodedText}" was not found. Try again or enter it manually.`;
+                        }, () => {}
+                    );
+                    scannerStatus.textContent = 'Point the camera at a barcode or QR code.';
+                } catch (_) {
+                    scannerStatus.textContent = 'Camera could not open. Allow permission and use HTTPS (or localhost), or enter the barcode manually below.';
+                }
+            } finally {
+                scannerStarting = false;
             }
+        }
+        async function stopScanner() {
+            try {
+                if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop();
+            } catch (_) { /* Always close the overlay even if a browser has already released the camera. */ }
+            document.getElementById('scannerOverlay').classList.remove('open');
         }
         document.getElementById('scanButton')?.addEventListener('click', startScanner);
         document.getElementById('closeScanner')?.addEventListener('click', stopScanner);

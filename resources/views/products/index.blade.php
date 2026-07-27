@@ -167,20 +167,20 @@
 
     {{-- Filters --}}
     <form method="GET" class="flex flex-wrap gap-3">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, barcode, SKU…" class="input w-64">
-        <select name="category" class="input w-44">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, barcode, SKU…" class="input w-full sm:w-64">
+        <select name="category" class="input w-full sm:w-44">
             <option value="">All Categories</option>
             @foreach($categories as $cat)
             <option value="{{ $cat }}" @selected(request('category') === $cat)>{{ $cat }}</option>
             @endforeach
         </select>
-        <select name="status" class="input w-36">
+        <select name="status" class="input w-full sm:w-36">
             <option value="">All Status</option>
             <option value="active"   @selected(request('status')==='active')>Active</option>
             <option value="inactive" @selected(request('status')==='inactive')>Inactive</option>
         </select>
         @if(auth()->user()->isAdmin())
-        <select name="branch_filter" class="input w-44">
+        <select name="branch_filter" class="input w-full sm:w-44">
             <option value="all"  @selected(request('branch_filter') !== 'mine')>All Branches</option>
             <option value="mine" @selected(request('branch_filter') === 'mine')>My Branch Only</option>
         </select>
