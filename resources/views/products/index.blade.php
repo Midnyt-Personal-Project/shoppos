@@ -166,7 +166,7 @@
     </div>
 
     {{-- Filters --}}
-    <form method="GET" class="flex flex-wrap gap-3">
+    <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, barcode, SKU…" class="input w-full sm:w-64">
         <select name="category" class="input w-full sm:w-44">
             <option value="">All Categories</option>

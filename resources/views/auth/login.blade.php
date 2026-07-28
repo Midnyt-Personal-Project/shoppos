@@ -24,104 +24,306 @@
             to   { opacity:1; transform: scale(1)  translateY(0); }
         }
         [x-cloak] { display: none !important; }
+
+        /* Hero background with African shopkeeper overlay */
+        .hero-bg {
+            position: relative;
+            background: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                /* Dark overlay for readability */
+                linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.85) 100%),
+                /* Background image - using a free stock photo of an African shopkeeper */
+                url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImciIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTNiMmI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2cpIiAvPgogIAogIDwhLS0gU2hvcGtlZXBlciBzaWxob3VldHRlIC0tPgogIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjI4MCIgcj0iMTUwIiBmaWxsPSIjMTk0YzNhIiBvcGFjaXR5PSIwLjYiIC8+CiAgPCEtLSBIZWFkIC0tPgogIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjIyMCIgcj0iNDAiIGZpbGw9IiM4YjZkNDUiIG9wYWNpdHk9IjAuNyIgLz4KICA8IS0tIEJvZHkgLS0+CiAgPHJlY3QgeD0iNDUwIiB5PSIyNjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjMTk0YzNhIiBvcGFjaXR5PSIwLjYiIC8+CiAgPCEtLSBBcm1zIC0tPgogIDxjaXJjbGUgY3g9IjQ2MCIgY3k9IjI4MCIgcj0iMTUiIGZpbGw9IiM4YjZkNDUiIG9wYWNpdHk9IjAuNyIgLz4KICA8Y2lyY2xlIGN4PSI1NDAiIGN5PSIyODAiIHI9IjE1IiBmaWxsPSIjOGI2ZDQ1IiBvcGFjaXR5PSIwLjciIC8+CiAgPCEtLSBMZWdzIC0tPgogIDxyZWN0IHg9IjQ2MCIgeT0iNDEwIiB3aWR0aD0iMjAiIGhlaWdodD0iNzAiIGZpbGw9IiMxOTRjM2EiIG9wYWNpdHk9IjAuNiIgLz4KICA8cmVjdCB4PSI1MjAiIHk9IjQxMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMTk0YzNhIiBvcGFjaXR5PSIwLjYiIC8+CiAgPCEtLSBBcHJvbiAtLT4KICA8cmVjdCB4PSI0NzAiIHk9IjI4MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMjA1YzQwIiBvcGFjaXR5PSIwLjUiIC8+CiAgPCEtLSBTaG9wIHNoZWxmIC0tPgogIDxyZWN0IHg9IjU4MCIgeT0iMjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzhjNjUzMCIgb3BhY2l0eT0iMC40IiAvPgogIDxyZWN0IHg9IjU5MCIgeT0iMjYwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iIzdhNTgyYSIgb3BhY2l0eT0iMC4zIiAvPgogIAogIDwhLS0gUHJvZHVjdHMgLS0+CiAgPHJlY3QgeD0iNjAwIiB5PSIyNzAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzljNzgzNSIgb3BhY2l0eT0iMC41IiAvPgogIDxyZWN0IHg9IjY1MCIgeT0iMjcwIiB3aWR0aD0iNDAiIGhlaWdodD0iNTAiIGZpbGw9IiM5Yzc4MzUiIG9wYWNpdHk9IjAuNSIgLz4KICA8cmVjdCB4PSI2MDAiIHk9IjMzMCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjOWM3ODM1IiBvcGFjaXR5PSIwLjUiIC8+CiAgPHJlY3QgeD0iNjUwIiB5PSIzMzAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzljNzgzNSIgb3BhY2l0eT0iMC41IiAvPgogIAogIDwhLS0gQ3VzdG9tZXIgLS0+CiAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iNDAwIiByPSIzMCIgZmlsbD0iIzhjNjUzMCIgb3BhY2l0eT0iMC41IiAvPgogIDxyZWN0IHg9IjIyMCIgeT0iNDMwIiB3aWR0aD0iNjAiIGhlaWdodD0iNzAiIGZpbGw9IiM4YzY1MzAiIG9wYWNpdHk9IjAuNSIgLz4KICAKICA8IS0tIFRleHQgb3ZlcmxheSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjUwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMTZhMzRhIiBvcGFjaXR5PSIwLjMiPkVtcG93ZXJpbmcgQWZyaWNhbiBCdXNpbmVzczwvdGV4dD4KPC9zdmc+');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .hero-bg > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Decorative elements */
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, transparent 100%);
+            z-index: 0;
+        }
+
+        /* Card glow effect */
+        .login-card {
+            position: relative;
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 1.25rem;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.3), transparent, rgba(22, 163, 74, 0.1));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* African pattern decoration */
+        .pattern-decoration {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            bottom: -2px;
+            left: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                #16a34a 0px,
+                #16a34a 20px,
+                #fbbf24 20px,
+                #fbbf24 40px,
+                #16a34a 40px,
+                #16a34a 60px
+            );
+            opacity: 0.3;
+        }
+
+        .login-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card .pattern-decoration {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #16a34a, #fbbf24, #16a34a, #fbbf24, #16a34a);
+            background-size: 100px 100%;
+            opacity: 0.4;
+        }
+
+        /* Floating African pattern */
+        .african-pattern {
+            position: absolute;
+            opacity: 0.05;
+            font-size: 120px;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Responsive background */
+        @media (max-width: 768px) {
+            .hero-bg::before {
+                background-size: cover;
+                background-position: 60% center;
+            }
+        }
+
+        /* Animated gradient border */
+        @keyframes borderGlow {
+            0%, 100% { border-color: rgba(22, 163, 74, 0.3); }
+            50% { border-color: rgba(22, 163, 74, 0.6); }
+        }
+
+        .login-card {
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        /* Fix for button text - ensure it's always visible */
+        .btn-text {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        .btn-text.hidden {
+            display: none !important;
+        }
     </style>
 </head>
-<body class="h-full flex items-center justify-center grid-bg" style="background-color:#0f172a">
+<body class="h-full hero-bg">
 
-    <div class="w-full max-w-sm px-6" x-data="setupApp()" x-cloak>
+    <div class="w-full max-w-sm px-6 relative" x-data="setupApp()" x-cloak>
 
-        {{-- Logo --}}
-        <div class="text-center mb-8">
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                 style="background:#16a34a;box-shadow:0 8px 32px rgba(22,163,74,.35)">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21h6"/>
-                </svg>
-            </div>
-            <h1 class="text-white text-2xl font-bold">OmniPOS</h1>
-            <p class="text-slate-400 text-sm mt-1">Sign in to your account</p>
+        {{-- African decorative pattern --}}
+        <div class="african-pattern" style="top: -60px; right: -40px; transform: rotate(15deg);">
+            ✤
+        </div>
+        <div class="african-pattern" style="bottom: -40px; left: -30px; transform: rotate(-10deg);">
+            ✥
         </div>
 
-        {{-- Login form --}}
-        <form method="POST" action="{{ route('login') }}" class="space-y-4" @submit="loginLoading = true">
-            @csrf
+        {{-- Login Card --}}
+        <div class="login-card rounded-2xl p-8 relative">
 
-            @if($errors->any())
-            <div class="rounded-xl px-4 py-3" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3)">
-                <p class="text-red-400 text-sm">{{ $errors->first() }}</p>
-            </div>
-            @endif
+            {{-- Pattern decoration at bottom --}}
+            <div class="pattern-decoration"></div>
 
-            <div>
-                <label class="text-slate-400 text-xs font-medium mb-1.5 block">Email address</label>
-                <input type="email" name="email" value="{{ old('email') }}" required autofocus
-                       class="input py-3"
-                       placeholder="you@yourshop.com">
-            </div>
-
-            <div>
-                <label class="text-slate-400 text-xs font-medium mb-1.5 block">Password</label>
-                <input type="password" name="password" required
-                       class="input py-3"
-                       placeholder="••••••••">
+            {{-- Logo --}}
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 relative"
+                     style="background:linear-gradient(135deg, #16a34a, #15803d);box-shadow:0 8px 32px rgba(22,163,74,.35)">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21h6"/>
+                    </svg>
+                    {{-- Small African accent --}}
+                    <span style="position:absolute;bottom:-4px;right:-4px;font-size:14px;">⚡</span>
+                </div>
+                <h1 class="text-white text-2xl font-bold tracking-tight">OmniPOS</h1>
+                <p class="text-green-400 text-sm mt-1 font-medium">Empowering African Businesses</p>
+                <p class="text-slate-500 text-xs mt-0.5">Sign in to your account</p>
             </div>
 
-            <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="remember"
-                           class="rounded border-slate-700 text-green-600 focus:ring-green-600"
-                           style="background:#0f172a">
-                    <span class="text-slate-400 text-xs">Remember me</span>
-                </label>
+            {{-- Login form --}}
+            <form method="POST" action="{{ route('login') }}" class="space-y-4" @submit="loginLoading = true">
+
+                @csrf
+
+                @if($errors->any())
+                <div class="rounded-xl px-4 py-3" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3)">
+                    <p class="text-red-400 text-sm flex items-center gap-2">
+                        <span>⚠️</span>
+                        {{ $errors->first() }}
+                    </p>
+                </div>
+                @endif
+
+                <div>
+                    <label class="text-slate-400 text-xs font-medium mb-1.5 block flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
+                        </svg>
+                        Email address
+                    </label>
+                    <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                           class="input py-3"
+                           placeholder="you@yourshop.com"
+                           style="background:rgba(15,23,42,0.6);border-color:rgba(51,65,85,0.5);">
+                </div>
+
+                <div>
+                    <label class="text-slate-400 text-xs font-medium mb-1.5 block flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Password
+                    </label>
+                    <input type="password" name="password" required
+                           class="input py-3"
+                           placeholder="••••••••"
+                           style="background:rgba(15,23,42,0.6);border-color:rgba(51,65,85,0.5);">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" name="remember"
+                               class="rounded border-slate-700 text-green-600 focus:ring-green-600 focus:ring-offset-0"
+                               style="background:rgba(15,23,42,0.6);">
+                        <span class="text-slate-400 text-xs group-hover:text-slate-300 transition-colors">Remember me</span>
+                    </label>
+                    <a href="#" class="text-green-400 hover:text-green-300 text-xs transition-colors">
+                        Forgot password?
+                    </a>
+                </div>
+
+                <button type="submit"
+                        :disabled="loginLoading"
+                        class="w-full text-white font-semibold py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 relative overflow-hidden group"
+                        style="background:linear-gradient(135deg, #16a34a, #15803d);box-shadow:0 4px 16px rgba(22,163,74,.25)"
+                        :class="{ 'opacity-70 cursor-not-allowed': loginLoading }">
+
+                    {{-- Hover effect --}}
+                    <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full"></span>
+
+                    {{-- Loading spinner --}}
+                    <svg x-show="loginLoading" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+
+                    {{-- Button text - ALWAYS VISIBLE unless loading --}}
+                    <span x-show="!loginLoading" class="btn-text">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                        </svg>
+                        Sign In
+                    </span>
+
+                    {{-- Loading text --}}
+                    {{-- <span x-show="loginLoading" x-cloak class="btn-text">Signing in...</span> --}}
+                </button>
+            </form>
+
+            {{-- Install as a web app --}}
+            <div id="installAppArea" class="mt-6 text-center hidden">
+                <button id="installAppButton" type="button"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                        style="background:rgba(22,163,74,.14);color:#86efac;border:1px solid rgba(22,163,74,.35)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-8m0 8l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-3M5 15v3a2 2 0 002 2"/>
+                    </svg>
+                    Install OmniPOS App
+                </button>
+                <p class="text-slate-500 text-xs mt-2">Install for faster access from your device.</p>
+            </div>
+            <div id="iosInstallHint" class="mt-4 text-center hidden">
+                <p class="text-slate-400 text-xs leading-relaxed">To install on iPhone or iPad, tap <strong class="text-slate-200">Share</strong> in Safari, then choose <strong class="text-slate-200">Add to Home Screen</strong>.</p>
             </div>
 
-            <button type="submit"
-                    :disabled="loginLoading"
-                    class="w-full text-white font-semibold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
-                    style="background:#16a34a;box-shadow:0 4px 16px rgba(22,163,74,.25)"
-                    :class="{ 'opacity-70 cursor-not-allowed': loginLoading }">
-                <svg x-show="loginLoading" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span x-text="loginLoading ? 'Signing in...' : 'Sign In'"></span>
-            </button>
-        </form>
-
-        {{-- Install as a web app — appears on supported browsers after the install prompt is available --}}
-        <div id="installAppArea" class="mt-10  text-center hidden">
-            <button id="installAppButton" type="button"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    style="background:rgba(22,163,74,.14);color:#86efac;border:1px solid rgba(22,163,74,.35)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-8m0 8l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-3M5 15v3a2 2 0 002 2"/>
-                </svg>
-                Install OmniPOS App
-            </button>
-            <p class="text-slate-500 text-xs mt-2">Install for faster access from your device.</p>
+            {{-- Setup button --}}
+            <div x-show="needsSetup" class="mt-6 text-center">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3"
+                     style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2)">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span class="text-blue-400 text-xs">First time? No shop registered yet</span>
+                </div>
+                <br>
+                <button @click="showSetup = true"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                        style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Set Up Your Shop
+                </button>
+            </div>
         </div>
-        <div id="iosInstallHint" class="mt-5 text-center hidden">
-            <p class="text-slate-400 text-xs leading-relaxed">To install on iPhone or iPad, tap <strong class="text-slate-200">Share</strong> in Safari, then choose <strong class="text-slate-200">Add to Home Screen</strong>.</p>
-        </div>
 
-        {{-- Setup button — only shown when DB is empty --}}
-        <div x-show="needsSetup" class="mt-6 text-center">
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3"
-                 style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2)">
-                <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-                <span class="text-blue-400 text-xs">First time? No shop registered yet</span>
+        {{-- Footer --}}
+        <div class="text-center mt-6">
+            <p class="text-slate-600 text-xs">
+                © {{ date('Y') }} OmniPOS — Built for African entrepreneurs 🇬🇭🇳🇬🇰🇪🇿🇦
+            </p>
+            <div class="flex items-center justify-center gap-2 mt-2">
+                <span style="font-size:12px;">🤝</span>
+                <span class="text-slate-700 text-xs">Supporting local businesses</span>
+                <span style="font-size:12px;">🌍</span>
             </div>
-            <br>
-            <button @click="showSetup = true"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                </svg>
-                Set Up Your Shop
-            </button>
         </div>
 
         {{-- Setup Modal --}}
@@ -423,6 +625,7 @@
                 showPass: false,
                 errorMsg: '',
                 errors: {},
+                loginLoading: false, // Added this
 
                 form: {
                     shop_name: '',
