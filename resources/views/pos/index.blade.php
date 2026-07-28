@@ -6,7 +6,9 @@
     <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         /* ── Scrollbar ── */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
 
         /* ── Sidebar (fixed cart) ── */
         .cart-sidebar {
@@ -21,6 +23,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .main-content {
             padding-right: 480px;
             height: 100vh;
@@ -39,21 +42,25 @@
             display: flex;
             flex-direction: column;
         }
+
         .product-table-wrap .table-scroll {
             flex: 1;
             overflow-y: auto;
         }
+
         .product-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
         }
+
         .product-table thead {
             position: sticky;
             top: 0;
             background: #1a2332;
             z-index: 5;
         }
+
         .product-table th {
             padding: 0.6rem 0.75rem;
             text-align: left;
@@ -63,20 +70,24 @@
             text-transform: uppercase;
             border-bottom: 1px solid #2d3a52;
         }
+
         .product-table td {
             padding: 0.5rem 0.75rem;
             vertical-align: middle;
             border-bottom: 1px solid #1e293b;
         }
+
         .product-table tr:hover {
             background: #1a2332;
         }
+
         .product-table .product-img {
             width: 36px;
             height: 36px;
             border-radius: 6px;
             object-fit: cover;
         }
+
         .product-table .add-btn {
             background: #0ea5e9;
             border: none;
@@ -90,8 +101,17 @@
             align-items: center;
             justify-content: center;
         }
-        .product-table .add-btn:hover { background: #0284c7; transform: scale(1.05); }
-        .product-table .add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .product-table .add-btn:hover {
+            background: #0284c7;
+            transform: scale(1.05);
+        }
+
+        .product-table .add-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .product-table .badge-service {
             background: #7c3aed;
             color: #fff;
@@ -108,18 +128,21 @@
             padding: 0.5rem 0.75rem;
             min-height: 0;
         }
+
         .cart-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
             table-layout: fixed;
         }
+
         .cart-table thead {
             position: sticky;
             top: 0;
             background: #0f172a;
             z-index: 3;
         }
+
         .cart-table th {
             padding: 0.3rem 0.4rem;
             text-align: left;
@@ -128,15 +151,18 @@
             text-transform: uppercase;
             border-bottom: 1px solid #1e293b;
         }
+
         .cart-table td {
             padding: 0.3rem 0.4rem;
             vertical-align: middle;
             border-bottom: 1px solid #1e293b;
             white-space: nowrap;
         }
+
         .cart-table .col-cart-img {
             width: 30px;
         }
+
         .cart-table .col-cart-img img {
             width: 26px;
             height: 26px;
@@ -144,22 +170,27 @@
             object-fit: cover;
             background: #1e293b;
         }
+
         .cart-table .col-cart-name {
             max-width: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
         .cart-table .col-cart-price {
             width: 60px;
         }
+
         .cart-table .col-cart-price .editable-price {
             width: 50px;
         }
+
         .cart-table .col-cart-qty {
             width: 90px;
             white-space: nowrap;
         }
+
         .cart-table .col-cart-qty input {
             width: 34px;
             text-align: center;
@@ -170,10 +201,12 @@
             font-size: 0.7rem;
             padding: 0.1rem 0;
         }
+
         .cart-table .col-cart-qty input:focus {
             outline: none;
             border-color: #0ea5e9;
         }
+
         .cart-table .col-cart-qty .qty-btn {
             background: #1e293b;
             border: none;
@@ -189,10 +222,12 @@
             align-items: center;
             justify-content: center;
         }
+
         .cart-table .col-cart-qty .qty-btn:hover {
             background: #2d3a52;
             color: #fff;
         }
+
         .cart-table .col-cart-total {
             width: 70px;
             font-weight: 600;
@@ -200,10 +235,12 @@
             font-size: 0.75rem;
             text-align: right;
         }
+
         .cart-table .col-cart-remove {
             width: 30px;
             text-align: center;
         }
+
         .cart-table .col-cart-remove button {
             background: none;
             border: none;
@@ -214,9 +251,11 @@
             border-radius: 4px;
             transition: 0.15s;
         }
+
         .cart-table .col-cart-remove button:hover {
             background: #2d1a1a;
         }
+
         .cart-table .empty-cart td {
             padding: 2rem 0.5rem;
             text-align: center;
@@ -224,6 +263,7 @@
             font-style: italic;
             font-size: 0.85rem;
         }
+
         .cart-table .editable-price {
             background: #1e293b;
             border: 1px solid #334155;
@@ -234,6 +274,7 @@
             width: 54px;
             text-align: right;
         }
+
         .cart-table .editable-price:focus {
             outline: none;
             border-color: #0ea5e9;
@@ -248,6 +289,7 @@
             align-items: center;
             flex-shrink: 0;
         }
+
         .cart-sidebar-payment {
             padding: 0.5rem 1rem;
             border-top: 1px solid #1e293b;
@@ -257,13 +299,25 @@
 
         /* ── Responsive ── */
         @media (max-width: 1200px) {
-            .cart-sidebar { width: 400px; }
-            .main-content { padding-right: 400px; }
+            .cart-sidebar {
+                width: 400px;
+            }
+
+            .main-content {
+                padding-right: 400px;
+            }
         }
+
         @media (max-width: 1024px) {
-            .cart-sidebar { width: 340px; }
-            .main-content { padding-right: 340px; }
+            .cart-sidebar {
+                width: 340px;
+            }
+
+            .main-content {
+                padding-right: 340px;
+            }
         }
+
         @media (max-width: 768px) {
             .main-content {
                 height: auto;
@@ -272,7 +326,11 @@
                 padding-bottom: 6rem;
                 gap: 1rem;
             }
-            .product-table-wrap { min-height: 320px; }
+
+            .product-table-wrap {
+                min-height: 320px;
+            }
+
             .cart-sidebar {
                 width: 100%;
                 height: min(68dvh, 620px);
@@ -284,14 +342,28 @@
                 transition: transform 0.3s ease;
                 z-index: 40;
             }
-            .cart-sidebar.open { transform: translateY(0); }
-            .main-content { padding-right: 0; }
-            .cart-sidebar-payment { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
-            .cart-toggle-mobile { bottom: max(1rem, env(safe-area-inset-bottom)); }
+
+            .cart-sidebar.open {
+                transform: translateY(0);
+            }
+
+            .main-content {
+                padding-right: 0;
+            }
+
+            .cart-sidebar-payment {
+                padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+            }
+
+            .cart-toggle-mobile {
+                bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+
             .cart-toggle-mobile {
                 display: flex !important;
             }
         }
+
         .cart-toggle-mobile {
             display: none;
             position: fixed;
@@ -305,7 +377,7 @@
             border-radius: 50%;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
             cursor: pointer;
             font-size: 1.5rem;
         }
@@ -322,10 +394,11 @@
             justify-content: center;
             padding: 1rem;
         }
-        #scannerOverlay.open { 
+
+        #scannerOverlay.open {
             display: flex !important;
         }
-        
+
         #qr-reader {
             width: 100%;
             max-width: 500px;
@@ -338,7 +411,7 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         #qr-reader video {
             display: block !important;
             width: 100% !important;
@@ -346,17 +419,17 @@
             object-fit: cover !important;
             border-radius: 1rem;
         }
-        
+
         #qr-reader img {
             display: none !important;
         }
-        
+
         .scanner-reticle {
             pointer-events: none;
             position: absolute;
-            top: 50%; 
+            top: 50%;
             left: 50%;
-            width: min(62vw, 250px); 
+            width: min(62vw, 250px);
             height: min(62vw, 250px);
             transform: translate(-50%, -50%);
             border: 3px solid rgba(74, 222, 128, .95);
@@ -364,28 +437,46 @@
             box-shadow: 0 0 0 999px rgba(0, 0, 0, .18), 0 0 24px rgba(74, 222, 128, .45);
             z-index: 10;
         }
+
         .scanner-reticle::after {
             content: '';
-            position: absolute; 
-            left: .5rem; 
-            right: .5rem; 
+            position: absolute;
+            left: .5rem;
+            right: .5rem;
             top: 50%;
-            height: 2px; 
+            height: 2px;
             background: #4ade80;
             box-shadow: 0 0 10px #4ade80;
             animation: scanLine 1.8s ease-in-out infinite;
         }
-        @keyframes scanLine { 
-            0%,100% { transform: translateY(-95px); } 
-            50% { transform: translateY(95px); } 
+
+        @keyframes scanLine {
+
+            0%,
+            100% {
+                transform: translateY(-95px);
+            }
+
+            50% {
+                transform: translateY(95px);
+            }
         }
-        
+
         @media (max-width: 480px) {
-            #qr-reader { min-height: 270px; }
-            #qr-reader video { height: 290px !important; }
-            .scanner-reticle { width: 210px; height: 210px; }
+            #qr-reader {
+                min-height: 270px;
+            }
+
+            #qr-reader video {
+                height: 290px !important;
+            }
+
+            .scanner-reticle {
+                width: 210px;
+                height: 210px;
+            }
         }
-        
+
         /* Scanner status text */
         #scannerStatus {
             color: #94a3b8;
@@ -395,7 +486,7 @@
             max-width: 500px;
             padding: 0 1rem;
         }
-        
+
         /* Camera error fallback */
         .scanner-error {
             color: #ef4444;
@@ -415,14 +506,18 @@
             <div class="relative flex-1">
                 <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
-                <input id="searchInput" class="input pl-10 py-3 w-full" placeholder="Search name or barcode..." type="text">
+                <input id="searchInput" class="input pl-10 py-3 w-full" placeholder="Search name or barcode..."
+                    type="text">
             </div>
-            <button id="scanButton" type="button" title="Scan a barcode or QR code with your camera" class="btn-primary flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0">
+            <button id="scanButton" type="button" title="Scan a barcode or QR code with your camera"
+                class="btn-primary flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4M12 12h4.01M20 12h4M4 12H2m-2 0h4M12 20h4M4 20h4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4M12 12h4.01M20 12h4M4 12H2m-2 0h4M12 20h4M4 20h4" />
                 </svg>
                 <span class="text-[10px] font-bold uppercase mt-1">Scan</span>
             </button>
@@ -432,10 +527,14 @@
         <div class="overflow-hidden w-full max-w-2xl mx-auto flex-shrink-0">
             <div class="overflow-x-auto overflow-y-hidden no-scrollbar">
                 <div class="flex gap-2 whitespace-nowrap px-2">
-                    <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-brand-600 text-white font-semibold text-sm" data-cat="all">All</button>
+                    <button
+                        class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-brand-600 text-white font-semibold text-sm"
+                        data-cat="all">All</button>
                     @if (isset($categories) && count($categories) > 0)
                         @foreach ($categories as $cat)
-                            <button class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-surface-card text-slate-300 font-medium text-sm hover:bg-surface-card/80 transition-colors" data-cat="{{ $cat }}">{{ $cat }}</button>
+                            <button
+                                class="filter-btn flex-shrink-0 px-5 py-2 rounded-full bg-surface-card text-slate-300 font-medium text-sm hover:bg-surface-card/80 transition-colors"
+                                data-cat="{{ $cat }}">{{ $cat }}</button>
                         @endforeach
                     @endif
                 </div>
@@ -471,7 +570,8 @@
         <div class="cart-sidebar-header">
             <div class="flex items-center gap-2">
                 <h2 class="text-lg font-bold text-white">Cart</h2>
-                <span class="text-xs text-brand-400 bg-brand-600/20 px-3 py-1 rounded-full" id="orderReference">#{{ rand(1000, 9999) }}</span>
+                <span class="text-xs text-brand-400 bg-brand-600/20 px-3 py-1 rounded-full"
+                    id="orderReference">#{{ rand(1000, 9999) }}</span>
             </div>
             <button id="closeSidebarMobile" class="lg:hidden p-2 rounded-lg hover:bg-surface-card transition-colors">
                 <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,7 +594,9 @@
                     </tr>
                 </thead>
                 <tbody id="cartBody">
-                    <tr class="empty-cart"><td colspan="6" class="text-center text-slate-400 py-8">Cart is empty</td></tr>
+                    <tr class="empty-cart">
+                        <td colspan="6" class="text-center text-slate-400 py-8">Cart is empty</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -507,10 +609,14 @@
                 <div class="flex justify-between text-sm items-center">
                     <span class="text-slate-400">Subtotal</span>
                     <div class="flex items-center gap-2">
-                        <span id="subtotal" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
-                        <button id="clearCartBtn" class="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed p-1" title="Clear Cart" disabled>
+                        <span id="subtotal"
+                            class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                        <button id="clearCartBtn"
+                            class="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed p-1"
+                            title="Clear Cart" disabled>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     </div>
@@ -518,17 +624,23 @@
 
                 <div class="flex items-center gap-2 bg-surface-card rounded-lg px-3 py-1.5">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    <input id="discountInput" class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-500" placeholder="Discount ({{ auth()->user()->shop->currency_symbol }})" type="number" min="0" step="0.01" value="0">
+                    <input id="discountInput"
+                        class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-500"
+                        placeholder="Discount ({{ auth()->user()->shop->currency_symbol }})" type="number"
+                        min="0" step="0.01" value="0">
                 </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-slate-400">Tax</span>
-                    <span id="taxAmount" class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
+                    <span id="taxAmount"
+                        class="text-white font-semibold">{{ auth()->user()->shop->currency_symbol }}0.00</span>
                 </div>
                 <div class="flex justify-between items-end pt-1 border-t border-surface-border">
                     <span class="text-slate-400 uppercase text-xs font-bold">Total</span>
-                    <h2 id="grandTotal" class="text-2xl font-bold text-white">{{ auth()->user()->shop->currency_symbol }}0.00</h2>
+                    <h2 id="grandTotal" class="text-2xl font-bold text-white">
+                        {{ auth()->user()->shop->currency_symbol }}0.00</h2>
                 </div>
             </div>
 
@@ -536,7 +648,8 @@
             <select id="customerSelect" class="input w-full text-sm">
                 <option value="">— Walk-in Customer —</option>
                 @foreach ($customers as $customer)
-                    <option value="{{ $customer->id }}" data-balance="{{ $customer->outstanding_balance }}" data-credit-limit="{{ $customer->credit_limit }}" data-email="{{ $customer->email }}">
+                    <option value="{{ $customer->id }}" data-balance="{{ $customer->outstanding_balance }}"
+                        data-credit-limit="{{ $customer->credit_limit }}" data-email="{{ $customer->email }}">
                         {{ $customer->name }} .📞. {{ $customer->phone }}
                     </option>
                 @endforeach
@@ -549,29 +662,36 @@
             <div>
                 <label class="text-slate-400 text-xs mb-0.5 block">Amount Paid</label>
                 <div class="relative">
-                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">{{ auth()->user()->shop->currency_symbol }}</span>
-                    <input type="number" id="amountPaidInput" step="0.01" min="0" class="input pl-7 w-full" value="0.00">
+                    <span
+                        class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">{{ auth()->user()->shop->currency_symbol }}</span>
+                    <input type="number" id="amountPaidInput" step="0.01" min="0" class="input pl-7 w-full"
+                        value="0.00">
                 </div>
                 <p id="amountPaidHint" class="text-xs text-slate-500 mt-0.5"></p>
             </div>
 
             <!-- Payment Methods -->
             <div class="grid grid-cols-3 gap-1.5">
-                <button onclick="setPaymentMethod('cash')" id="pm-cash" class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-brand-600 text-white border-brand-600">Cash</button>
-                <button onclick="setPaymentMethod('mobile_money')" id="pm-mobile_money" class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">MoMo</button>
-                <button onclick="setPaymentMethod('card')" id="pm-card" class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">Card</button>
+                <button onclick="setPaymentMethod('cash')" id="pm-cash"
+                    class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-brand-600 text-white border-brand-600">Cash</button>
+                <button onclick="setPaymentMethod('mobile_money')" id="pm-mobile_money"
+                    class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">MoMo</button>
+                <button onclick="setPaymentMethod('card')" id="pm-card"
+                    class="pay-method py-1.5 rounded-lg text-xs font-medium border transition-all bg-slate-800 text-slate-400 border-slate-700">Card</button>
             </div>
 
             <!-- Reference -->
             <div id="paymentReferenceContainer" class="hidden">
                 <label class="text-slate-400 text-xs mb-0.5 block">Reference Number</label>
-                <input type="text" id="paymentReference" class="input w-full" placeholder="Transaction ID / reference">
+                <input type="text" id="paymentReference" class="input w-full"
+                    placeholder="Transaction ID / reference">
             </div>
 
             <!-- Action Buttons -->
             <button id="collectPaymentBtn" class="btn-primary w-full py-2 justify-center gap-2 text-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
                 </svg>
                 COLLECT PAYMENT
             </button>
@@ -580,7 +700,8 @@
             <div class="flex gap-2">
                 <button id="receiptButton" class="btn-secondary flex-1 justify-center gap-1 text-sm">🖨️ Receipt</button>
                 <button id="invoiceButton" class="btn-secondary flex-1 justify-center gap-1 text-sm">📄 Invoice</button>
-                <button onclick="document.getElementById('customerModal').classList.remove('hidden')" class="btn-secondary flex-1 justify-center gap-1 text-sm">👤 Customer</button>
+                <button onclick="document.getElementById('customerModal').classList.remove('hidden')"
+                    class="btn-secondary flex-1 justify-center gap-1 text-sm">👤 Customer</button>
             </div>
         </div>
     </div>
@@ -588,9 +709,11 @@
     <!-- Floating buttons -->
     <div class="cart-toggle-mobile" id="cartToggleMobile">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21h6" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21h6" />
         </svg>
-        <span id="cartBadgeMobile" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+        <span id="cartBadgeMobile"
+            class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
     </div>
 
     <!-- ==================== MODALS ==================== -->
@@ -624,12 +747,17 @@
             <h3 class="text-white font-semibold mb-4">Add New Customer</h3>
             <form id="addCustomerForm" class="space-y-3">
                 @csrf
-                <div><label class="text-slate-400 text-xs mb-1 block">Name *</label><input type="text" name="name" required class="input"></div>
-                <div><label class="text-slate-400 text-xs mb-1 block">Phone</label><input type="tel" name="phone" class="input"></div>
-                <div><label class="text-slate-400 text-xs mb-1 block">Email</label><input type="email" name="email" class="input"></div>
-                <div><label class="text-slate-400 text-xs mb-1 block">Address</label><input type="text" name="address" class="input"></div>
+                <div><label class="text-slate-400 text-xs mb-1 block">Name *</label><input type="text" name="name"
+                        required class="input"></div>
+                <div><label class="text-slate-400 text-xs mb-1 block">Phone</label><input type="tel" name="phone"
+                        class="input"></div>
+                <div><label class="text-slate-400 text-xs mb-1 block">Email</label><input type="email" name="email"
+                        class="input"></div>
+                <div><label class="text-slate-400 text-xs mb-1 block">Address</label><input type="text" name="address"
+                        class="input"></div>
                 <div class="flex gap-3 mt-4">
-                    <button type="button" onclick="document.getElementById('customerModal').classList.add('hidden')" class="btn-secondary flex-1">Cancel</button>
+                    <button type="button" onclick="document.getElementById('customerModal').classList.add('hidden')"
+                        class="btn-secondary flex-1">Cancel</button>
                     <button type="submit" class="btn-primary flex-1">Save</button>
                 </div>
             </form>
@@ -641,28 +769,32 @@
         <div class="relative w-full max-w-md mx-auto">
             <div id="qr-reader" style="width: 100%; min-height: 340px;">
                 <div class="text-slate-400 text-sm p-4 text-center" id="scannerPlaceholder">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <svg class="w-12 h-12 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <p>Starting camera preview…</p>
                     <p class="text-xs text-slate-500 mt-2">Please allow camera access when prompted</p>
                 </div>
             </div>
             <div class="scanner-reticle" aria-hidden="true"></div>
-            <button id="closeScanner" class="absolute top-2 right-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors z-20">
+            <button id="closeScanner"
+                class="absolute top-2 right-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors z-20">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
-        
+
         <p id="scannerStatus" class="text-slate-300 text-sm text-center mt-3">Opening camera…</p>
-        
+
         <div class="mt-6 w-full max-w-md">
             <div class="bg-surface-card rounded-lg p-4">
                 <p class="text-slate-300 text-sm mb-2 text-center">Having trouble? Enter barcode manually:</p>
                 <div class="flex gap-2">
-                    <input type="text" id="manualBarcode" class="input flex-1" placeholder="Enter barcode number" autocomplete="off">
+                    <input type="text" id="manualBarcode" class="input flex-1" placeholder="Enter barcode number"
+                        autocomplete="off">
                     <button id="submitBarcode" class="btn-primary whitespace-nowrap">Add</button>
                 </div>
             </div>
@@ -680,11 +812,38 @@
         const TAX_RATES = @json($taxRates);
 
         // ─── Helpers ────────────────────────────────────────────────
-        function getProductById(id) { return products.find(p => p.id === id); }
-        function imgSrc(p) { return p.image ? '/storage/' + p.image : (p.type === 'service' ? '/service.png' : '/default.jpeg'); }
-        function imgError(el) { el.onerror = null; el.src = '/default.jpg'; }
-        function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-        function playBeep() { try { const ctx = new AudioContext(); const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.frequency.value = 1200; g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08); osc.start(); osc.stop(ctx.currentTime + 0.08); } catch(_) {} }
+        function getProductById(id) {
+            return products.find(p => p.id === id);
+        }
+
+        function imgSrc(p) {
+            return p.image ? '/storage/' + p.image : (p.type === 'service' ? '/service.png' : '/default.jpeg');
+        }
+
+        function imgError(el) {
+            el.onerror = null;
+            el.src = '/default.jpg';
+        }
+
+        function escHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function playBeep() {
+            try {
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.connect(g);
+                g.connect(ctx.destination);
+                osc.frequency.value = 1200;
+                g.gain.setValueAtTime(0.1, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.08);
+            } catch (_) {}
+        }
 
         function calculateTax(subtotal, discount) {
             const taxable = Math.max(0, subtotal - discount);
@@ -729,13 +888,15 @@
         function renderProducts() {
             const term = searchTerm.toLowerCase().trim();
             let list = products.filter(p => {
-                const matchSearch = !term || p.name.toLowerCase().includes(term) || (p.barcode && p.barcode.includes(term));
+                const matchSearch = !term || p.name.toLowerCase().includes(term) || (p.barcode && p.barcode
+                    .includes(term));
                 const matchCat = activeCategory === 'all' || p.category === activeCategory;
                 return matchSearch && matchCat;
             });
 
             if (list.length === 0) {
-                productBody.innerHTML = `<tr><td colspan="7" class="text-center text-slate-600 py-8">No products found</td></tr>`;
+                productBody.innerHTML =
+                    `<tr><td colspan="7" class="text-center text-slate-600 py-8">No products found</td></tr>`;
                 return;
             }
 
@@ -766,15 +927,20 @@
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.filter-btn').forEach(b => {
                     const isActive = b === this;
-                    b.className = 'filter-btn flex-shrink-0 px-5 py-2 rounded-full font-medium text-sm transition-colors ' +
-                        (isActive ? 'bg-brand-600 text-white font-semibold' : 'bg-surface-card text-slate-300 hover:bg-surface-card/80');
+                    b.className =
+                        'filter-btn flex-shrink-0 px-5 py-2 rounded-full font-medium text-sm transition-colors ' +
+                        (isActive ? 'bg-brand-600 text-white font-semibold' :
+                            'bg-surface-card text-slate-300 hover:bg-surface-card/80');
                 });
                 activeCategory = this.dataset.cat;
                 renderProducts();
             });
         });
 
-        searchInput?.addEventListener('input', function() { searchTerm = this.value; renderProducts(); });
+        searchInput?.addEventListener('input', function() {
+            searchTerm = this.value;
+            renderProducts();
+        });
         discountInput?.addEventListener('input', updateCartUI);
 
         // ─── Add to cart ────────────────────────────────────────────
@@ -784,24 +950,41 @@
             if (product.type === 'service') {
                 const existing = cart.find(i => i.productId === productId);
                 if (existing) existing.quantity++;
-                else cart.push({ productId, quantity: 1 });
-                updateCartUI(); saveCart(); playBeep();
+                else cart.push({
+                    productId,
+                    quantity: 1
+                });
+                updateCartUI();
+                saveCart();
+                playBeep();
                 return;
             }
             const stock = product.stock ?? 0;
-            if (stock <= 0) { alert(`"${product.name}" is out of stock.`); return; }
+            if (stock <= 0) {
+                alert(`"${product.name}" is out of stock.`);
+                return;
+            }
             const existing = cart.find(i => i.productId === productId);
             const newQty = existing ? existing.quantity + 1 : 1;
-            if (newQty > stock) { alert(`Only ${stock} left.`); return; }
+            if (newQty > stock) {
+                alert(`Only ${stock} left.`);
+                return;
+            }
             if (existing) existing.quantity++;
-            else cart.push({ productId, quantity: 1 });
-            updateCartUI(); saveCart(); playBeep();
+            else cart.push({
+                productId,
+                quantity: 1
+            });
+            updateCartUI();
+            saveCart();
+            playBeep();
         }
 
         // ─── Update cart UI ─────────────────────────────────────────
         function calculateTotals() {
             const discount = parseFloat(discountInput.value || 0);
-            let subtotal = 0, itemCount = 0;
+            let subtotal = 0,
+                itemCount = 0;
             cart.forEach(item => {
                 const p = getProductById(item.productId);
                 if (p) {
@@ -812,7 +995,13 @@
             });
             const tax = calculateTax(subtotal, discount);
             const grand = Math.max(0, subtotal - discount + tax);
-            return { subtotal, discount, tax, grand, itemCount };
+            return {
+                subtotal,
+                discount,
+                tax,
+                grand,
+                itemCount
+            };
         }
 
         function updateCartUI() {
@@ -846,7 +1035,8 @@
 
             // Render cart table
             if (cart.length === 0) {
-                cartBody.innerHTML = `<tr class="empty-cart"><td colspan="6" class="text-center text-slate-400 py-8">Cart is empty</td></tr>`;
+                cartBody.innerHTML =
+                    `<tr class="empty-cart"><td colspan="6" class="text-center text-slate-400 py-8">Cart is empty</td></tr>`;
                 return;
             }
 
@@ -891,7 +1081,11 @@
         function handleQtyChange(e) {
             const id = parseInt(e.target.dataset.id);
             const val = parseInt(e.target.value);
-            if (isNaN(val) || val < 1) { e.target.value = 1; setQty(id, 1); return; }
+            if (isNaN(val) || val < 1) {
+                e.target.value = 1;
+                setQty(id, 1);
+                return;
+            }
             setQty(id, val);
         }
 
@@ -900,7 +1094,11 @@
             const val = parseFloat(e.target.value);
             if (isNaN(val) || val < 0) return;
             const item = cart.find(i => i.productId === id);
-            if (item) { item.customPrice = val; updateCartUI(); saveCart(); }
+            if (item) {
+                item.customPrice = val;
+                updateCartUI();
+                saveCart();
+            }
         }
 
         function setQty(id, qty) {
@@ -946,13 +1144,20 @@
         document.getElementById('clearCartBtn')?.addEventListener('click', clearCart);
 
         // ─── Save / Load ─────────────────────────────────────────────
-        function saveCart() { try { localStorage.setItem('pos_cart', JSON.stringify(cart)); } catch(_) {} }
+        function saveCart() {
+            try {
+                localStorage.setItem('pos_cart', JSON.stringify(cart));
+            } catch (_) {}
+        }
+
         function loadCart() {
             try {
                 const saved = localStorage.getItem('pos_cart');
                 if (saved) {
                     cart = JSON.parse(saved);
-                    cart.forEach(item => { if (item.customPrice === undefined) item.customPrice = null; });
+                    cart.forEach(item => {
+                        if (item.customPrice === undefined) item.customPrice = null;
+                    });
                     let modified = false;
                     cart = cart.filter(item => {
                         const p = getProductById(item.productId);
@@ -966,7 +1171,7 @@
                     });
                     if (modified) saveCart();
                 }
-            } catch(_) {}
+            } catch (_) {}
             updateCartUI();
         }
 
@@ -1003,7 +1208,8 @@
             document.querySelectorAll('.pay-method').forEach(btn => {
                 const isActive = btn.id === `pm-${method}`;
                 btn.className = 'pay-method py-1.5 rounded-lg text-xs font-medium border transition-all ' +
-                    (isActive ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-800 text-slate-400 border-slate-700');
+                    (isActive ? 'bg-brand-600 text-white border-brand-600' :
+                        'bg-slate-800 text-slate-400 border-slate-700');
             });
             if (method === 'cash') {
                 refContainer.classList.add('hidden');
@@ -1017,7 +1223,10 @@
 
         // ─── Collect Payment ────────────────────────────────────────
         document.getElementById('collectPaymentBtn')?.addEventListener('click', async function() {
-            if (cart.length === 0) { alert('Cart is empty.'); return; }
+            if (cart.length === 0) {
+                alert('Cart is empty.');
+                return;
+            }
             const btn = this;
             btn.disabled = true;
             btn.innerHTML = 'Processing…';
@@ -1026,11 +1235,24 @@
             let missing = false;
             for (const item of cart) {
                 const p = getProductById(item.productId);
-                if (!p) { missing = true; break; }
+                if (!p) {
+                    missing = true;
+                    break;
+                }
                 const price = (p.allow_price_override && item.customPrice) ? item.customPrice : p.price;
-                validItems.push({ id: p.id, qty: item.quantity, price, discount: 0 });
+                validItems.push({
+                    id: p.id,
+                    qty: item.quantity,
+                    price,
+                    discount: 0
+                });
             }
-            if (missing) { alert('Missing products. Refresh.'); btn.disabled = false; btn.innerHTML = 'COLLECT PAYMENT'; return; }
+            if (missing) {
+                alert('Missing products. Refresh.');
+                btn.disabled = false;
+                btn.innerHTML = 'COLLECT PAYMENT';
+                return;
+            }
 
             const t = calculateTotals();
             const customerId = customerSelect.value || null;
@@ -1039,11 +1261,20 @@
 
             if (!customerId && amountPaid < t.grand - 0.01) {
                 alert('Walk-in must pay full amount.');
-                btn.disabled = false; btn.innerHTML = 'COLLECT PAYMENT'; return;
+                btn.disabled = false;
+                btn.innerHTML = 'COLLECT PAYMENT';
+                return;
             }
-            if (isNaN(amountPaid)) { btn.disabled = false; btn.innerHTML = 'COLLECT PAYMENT'; return; }
+            if (isNaN(amountPaid)) {
+                btn.disabled = false;
+                btn.innerHTML = 'COLLECT PAYMENT';
+                return;
+            }
 
-            const payment = { method: paymentMethod, amount: amountPaid };
+            const payment = {
+                method: paymentMethod,
+                amount: amountPaid
+            };
             if (paymentMethod !== 'cash' && ref) payment.reference = ref;
 
             const payload = {
@@ -1057,7 +1288,10 @@
             try {
                 const res = await fetch('/pos/checkout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
@@ -1068,7 +1302,8 @@
                 const changeEl = document.getElementById('changeDisplay');
                 if (data.change > 0) {
                     changeEl.classList.remove('hidden');
-                    document.getElementById('changeAmount').textContent = CURRENCY + parseFloat(data.change).toFixed(2);
+                    document.getElementById('changeAmount').textContent = CURRENCY + parseFloat(data.change)
+                        .toFixed(2);
                 } else changeEl.classList.add('hidden');
                 document.getElementById('saleCompleteModal').classList.remove('hidden');
 
@@ -1100,7 +1335,10 @@
 
         document.getElementById('invoiceButton')?.addEventListener('click', generateInvoiceFromCart);
         async function generateInvoiceFromCart() {
-            if (cart.length === 0) { alert('Cart is empty.'); return; }
+            if (cart.length === 0) {
+                alert('Cart is empty.');
+                return;
+            }
             const btn = document.getElementById('invoiceButton');
             btn.disabled = true;
             btn.innerHTML = '⏳…';
@@ -1109,23 +1347,53 @@
                     const p = getProductById(item.productId);
                     if (!p) return null;
                     const price = (p.allow_price_override && item.customPrice) ? item.customPrice : p.price;
-                    return { id: p.id, name: p.name, qty: item.quantity, price, discount: 0 };
+                    return {
+                        id: p.id,
+                        name: p.name,
+                        qty: item.quantity,
+                        price,
+                        discount: 0
+                    };
                 }).filter(Boolean);
-                if (!items.length) { alert('No valid items.'); return; }
+                if (!items.length) {
+                    alert('No valid items.');
+                    return;
+                }
                 const t = calculateTotals();
-                const payload = { items, customer_id: customerSelect.value || null, discount: t.discount, tax: t.tax, subtotal: t.subtotal, grand_total: t.grand };
+                const payload = {
+                    items,
+                    customer_id: customerSelect.value || null,
+                    discount: t.discount,
+                    tax: t.tax,
+                    subtotal: t.subtotal,
+                    grand_total: t.grand
+                };
                 const res = await fetch('/sales/invoice-preview', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'text/html' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF,
+                        'Accept': 'text/html'
+                    },
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error('Server error');
                 const html = await res.text();
                 const win = window.open('', '_blank');
-                if (!win) { alert('Please allow popups.'); return; }
-                win.document.open(); win.document.write(html); win.document.close();
-                win.onload = () => { win.focus(); win.print(); };
-            } catch (e) { alert('Invoice error: ' + e.message); } finally {
+                if (!win) {
+                    alert('Please allow popups.');
+                    return;
+                }
+                win.document.open();
+                win.document.write(html);
+                win.document.close();
+                win.onload = () => {
+                    win.focus();
+                    win.print();
+                };
+            } catch (e) {
+                alert('Invoice error: ' + e.message);
+            } finally {
                 btn.disabled = false;
                 btn.innerHTML = '📄 Invoice';
             }
@@ -1134,14 +1402,8 @@
         // ─── New Sale ───────────────────────────────────────────────
         function newSale() {
             document.getElementById('saleCompleteModal').classList.add('hidden');
-            customerSelect.value = '';
-            discountInput.value = 0;
-            amountPaidInput.value = '0.00';
-            setPaymentMethod('cash');
-            paymentReference.value = '';
-            updateCustomerBalance();
-            searchInput.focus();
-            updateCartUI();
+            // Refresh the page to get fresh stock counts and server-side state
+            window.location.reload();
         }
         // Expose to global for inline onclick
         window.newSale = newSale;
@@ -1150,11 +1412,15 @@
         document.getElementById('addCustomerForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             const data = {};
-            new FormData(this).forEach((v,k) => data[k] = v);
+            new FormData(this).forEach((v, k) => data[k] = v);
             try {
                 const res = await fetch('/customers', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF,
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify(data)
                 });
                 if (!res.ok) {
@@ -1168,13 +1434,18 @@
                     opt.dataset.balance = '0';
                     opt.dataset.email = c.email || '';
                     customerSelect.appendChild(opt);
-                    customersList[c.id] = { balance: 0, email: c.email || '' };
+                    customersList[c.id] = {
+                        balance: 0,
+                        email: c.email || ''
+                    };
                     customerSelect.value = c.id;
                     updateCustomerBalance();
                     this.reset();
                     document.getElementById('customerModal').classList.add('hidden');
                 }
-            } catch (e) { alert('Network error: ' + e.message); }
+            } catch (e) {
+                alert('Network error: ' + e.message);
+            }
         });
 
         // ─── Scanner - FIXED ────────────────────────────────────────
@@ -1191,11 +1462,11 @@
                 console.log('Scanner already running');
                 return;
             }
-            
+
             // Show the scanner overlay immediately
             scannerOverlay.classList.add('open');
             scannerStatus.textContent = 'Starting camera...';
-            
+
             // Wait for the library to be available
             if (typeof Html5Qrcode === 'undefined') {
                 scannerStatus.textContent = 'Loading scanner library...';
@@ -1209,15 +1480,17 @@
                     return;
                 }
             }
-            
+
             if (!navigator.mediaDevices?.getUserMedia) {
                 scannerStatus.textContent = 'Camera not supported by this browser.';
-                alert('Camera scanning is not supported by this browser. Use a USB scanner or enter the barcode manually.');
+                alert(
+                    'Camera scanning is not supported by this browser. Use a USB scanner or enter the barcode manually.'
+                    );
                 return;
             }
-            
+
             scannerStarting = true;
-            
+
             try {
                 // Get available cameras
                 let cameras = [];
@@ -1227,37 +1500,42 @@
                 } catch (e) {
                     console.warn('Could not get camera list:', e);
                 }
-                
+
                 // Find rear camera
                 let cameraId = null;
                 if (cameras && cameras.length > 0) {
-                    const rearCamera = cameras.find(camera => 
+                    const rearCamera = cameras.find(camera =>
                         /back|rear|environment|wide/i.test(camera.label)
                     );
                     cameraId = rearCamera?.id || cameras[0]?.id;
                 }
-                
+
                 // Create scanner instance
                 if (!html5QrCode) {
                     html5QrCode = new Html5Qrcode('qr-reader');
                 }
-                
+
                 // Configuration
                 const config = {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 },
+                    qrbox: {
+                        width: 250,
+                        height: 250
+                    },
                     aspectRatio: 1.0
                 };
-                
+
                 scannerStatus.textContent = 'Initializing camera...';
-                
+
                 // Start scanning
                 await html5QrCode.start(
-                    cameraId || { facingMode: 'environment' },
+                    cameraId || {
+                        facingMode: 'environment'
+                    },
                     config,
                     function onScanSuccess(decodedText) {
                         console.log('Scanned:', decodedText);
-                        const product = products.find(p => 
+                        const product = products.find(p =>
                             String(p.barcode || '').trim() === String(decodedText).trim()
                         );
                         if (product) {
@@ -1274,21 +1552,28 @@
                         // console.debug('Scan error:', error);
                     }
                 );
-                
+
                 scannerStatus.textContent = 'Scanner ready! Point camera at barcode.';
-                
+
             } catch (error) {
                 console.error('Scanner error:', error);
                 scannerStatus.textContent = 'Camera error: ' + (error.message || 'Unknown error');
-                
+
                 // Try fallback with facingMode only
                 try {
                     if (html5QrCode) {
-                        await html5QrCode.start(
-                            { facingMode: 'environment' },
-                            { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+                        await html5QrCode.start({
+                                facingMode: 'environment'
+                            }, {
+                                fps: 10,
+                                qrbox: {
+                                    width: 250,
+                                    height: 250
+                                },
+                                aspectRatio: 1.0
+                            },
                             function(decodedText) {
-                                const product = products.find(p => 
+                                const product = products.find(p =>
                                     String(p.barcode || '').trim() === String(decodedText).trim()
                                 );
                                 if (product) {
@@ -1324,14 +1609,14 @@
 
         // ─── Scanner event listeners ──────────────────────────────
         document.getElementById('scanButton')?.addEventListener('click', startScanner);
-        
+
         document.getElementById('closeScanner')?.addEventListener('click', stopScanner);
-        
+
         // Close scanner on overlay click (but not on the reader itself)
         scannerOverlay?.addEventListener('click', function(e) {
             if (e.target === this) stopScanner();
         });
-        
+
         // Manual barcode entry
         document.getElementById('submitBarcode')?.addEventListener('click', function() {
             const barcode = document.getElementById('manualBarcode').value.trim();
@@ -1348,7 +1633,7 @@
                 alert('Barcode "' + barcode + '" not found.');
             }
         });
-        
+
         document.getElementById('manualBarcode')?.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('submitBarcode').click();
@@ -1356,18 +1641,25 @@
         });
 
         // ─── USB barcode scanner ────────────────────────────────────
-        let barcodeBuf = '', barcodeTimer = null;
+        let barcodeBuf = '',
+            barcodeTimer = null;
         document.addEventListener('keydown', function(e) {
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
             if (e.key === 'Enter' && barcodeBuf.length > 2) {
                 const found = products.find(p => p.barcode === barcodeBuf);
                 if (found) addToCart(found.id);
-                else { searchInput.value = barcodeBuf; searchTerm = barcodeBuf; renderProducts(); }
+                else {
+                    searchInput.value = barcodeBuf;
+                    searchTerm = barcodeBuf;
+                    renderProducts();
+                }
                 barcodeBuf = '';
             } else if (e.key.length === 1) {
                 barcodeBuf += e.key;
                 clearTimeout(barcodeTimer);
-                barcodeTimer = setTimeout(() => { barcodeBuf = ''; }, 200);
+                barcodeTimer = setTimeout(() => {
+                    barcodeBuf = '';
+                }, 200);
             }
         });
 
@@ -1427,23 +1719,36 @@
         });
 
         document.getElementById('emailReceiptBtn')?.addEventListener('click', async () => {
-            if (!lastSaleId) { alert('No sale.'); return; }
+            if (!lastSaleId) {
+                alert('No sale.');
+                return;
+            }
             const id = customerSelect.value;
             const email = id && customersList[id] ? customersList[id].email : null;
-            if (!email) { alert('Customer has no email.'); return; }
+            if (!email) {
+                alert('Customer has no email.');
+                return;
+            }
             const btn = document.getElementById('emailReceiptBtn');
             btn.disabled = true;
             btn.innerHTML = '⏳…';
             try {
                 const res = await fetch(`/sales/${lastSaleId}/email-receipt`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-                    body: JSON.stringify({ email })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
+                    body: JSON.stringify({
+                        email
+                    })
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || 'Failed');
                 alert('Receipt sent to ' + email);
-            } catch(e) { alert('Email error: ' + e.message); } finally {
+            } catch (e) {
+                alert('Email error: ' + e.message);
+            } finally {
                 btn.disabled = false;
                 btn.innerHTML = '✉️ Email';
             }
@@ -1471,7 +1776,7 @@
         loadCart();
         searchInput?.focus();
         updateCustomerBalance();
-        
+
         // Hide scanner overlay on load
         scannerOverlay.classList.remove('open');
 

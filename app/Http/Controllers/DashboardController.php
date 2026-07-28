@@ -56,12 +56,17 @@ class DashboardController extends Controller
         }
 
         // Top products
-        $topProducts = \App\Models\SaleItem::selectRaw('product_id, product_name,price, SUM(quantity) as qty_sold, SUM(total) as revenue')
-            ->whereHas('sale', fn($q) => $q->where('branch_id', $branchId)->where('status', 'completed')->whereDate('created_at', '>=', now()->subDays(29)))
-            ->groupBy('product_id', 'product_name')
-            ->orderByDesc('qty_sold')
-            ->limit(5)
-            ->get();
+        $topProducts = \App\Models\SaleItem::select(
+            'product_id',
+            'product_name',
+            DB::raw('MAX(price) as price'),
+            DB::raw('SUM(quantity) as qty_sold'),
+            DB::raw('SUM(total) as revenue')
+        )
+        ->groupBy('product_id', 'product_name')
+        ->orderByDesc('qty_sold')
+        ->limit(5)
+        ->get();
 
         // Low stock alerts
         $lowStock = \App\Models\BranchStock::with('product')
